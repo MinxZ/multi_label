@@ -966,24 +966,17 @@ class NumpyArrayIterator(Iterator):
         return scaled_img
 
     def _get_batches_of_transformed_samples(self, index_array):
-        batch_x = np.zeros(tuple([len(index_array)] + list(self.x.shape)[1:]),
-                           dtype=K.floatx())
-        print('../data/train_data')
-        print(self.x[j])
-        print(index_array)
+        batch_x = np.zeros((len(index_array), self.width, self.width)),
+                           dtype = K.floatx())
         for i, j in enumerate(index_array):
-            # print('gg')
-            # print(self.dir)
-            print('../data/train_data')
-            print(self.x[j])
-            #s_img = cv2.imread(f'{self.dir}/{self.x[j]}.jpg')
-            # b, g, r = cv2.split(s_img)       # get b,g,r
-            # x = cv2.merge([r, g, b])     # switch it to rgb
-            #resize_pad_img = resizeAndPad(x, (self.width, self.width))
-            x = np.zeros((224, 224, 3))
+            s_img=cv2.imread(f'{self.dir}/{self.x[j]}.jpg')
+            b, g, r=cv2.split(s_img)       # get b,g,r
+            x=cv2.merge([r, g, b])     # switch it to rgb
+            resize_pad_img=resizeAndPad(x, (self.width, self.width))
+            x=np.zeros((224, 224, 3))
 
             # x = self.x[j]
-            x = self.image_data_generator.random_transform(
+            x=self.image_data_generator.random_transform(
                 x.astype(K.floatx()))
             x = self.image_data_generator.standardize(x)
             batch_x[i] = x
