@@ -976,7 +976,6 @@ class NumpyArrayIterator(Iterator):
             # print(self.dir)
             print('../data/train_data')
             print(self.x[j])
-            print(f'{self.dir}/{self.x[j]}.jpg')
             #s_img = cv2.imread(f'{self.dir}/{self.x[j]}.jpg')
             # b, g, r = cv2.split(s_img)       # get b,g,r
             # x = cv2.merge([r, g, b])     # switch it to rgb
