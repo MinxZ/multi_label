@@ -18,6 +18,8 @@ from keras.regularizers import *
 from keras.utils.generic_utils import CustomObjectScope
 from tqdm import tqdm
 
+from my_classes import DataGenerator
+
 # from load_data import *
 # from m_model import *
 
@@ -25,6 +27,22 @@ from tqdm import tqdm
 x_train, y_train, x_val, y_val = load_multi_label_data()
 width = x_val.shape[1]
 n_class = y_val.shape[1]
+
+
+# Parameters
+params = {'dim': (224, 224, 3),
+          'batch_size': 32,
+          'n_classes': 223,
+          'n_channels': 1,
+          'shuffle': True}
+
+# Datasets
+partition =  # IDs
+labels =  # Labels
+
+# Generators
+training_generator = DataGenerator(partition['train'], labels, **params)
+validation_generator = DataGenerator(partition['validation'], labels, **params)
 
 
 # Loading model
@@ -86,6 +104,17 @@ reduce_lr = ReduceLROnPlateau(
 
 # Start fitting model
 print(" Fine tune " + model_name + ": \n")
+# Design model
+model = Sequential()
+[...]  # Architecture
+model.compile()
+
+# Train model on dataset
+model.fit_generator(generator=training_generator,
+                    validation_data=validation_generator,
+                    use_multiprocessing=True,
+                    workers=6)
+
 model.fit_generator(
     datagen.flow(x_train, y_train, batch_size=batch_size),
     steps_per_epoch=len(x_train) / batch_size,
