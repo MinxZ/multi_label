@@ -847,7 +847,7 @@ class NumpyArrayIterator(Iterator):
             validation_split is set in ImageDataGenerator.
     """
 
-    def __init__(self, x, dir, width, y, image_data_generator,
+    def __init__(self, x, dir_path, width, y, image_data_generator,
                  batch_size=32, shuffle=False, sample_weight=None,
                  seed=None, data_format=None,
                  save_to_dir=None, save_prefix='', save_format='png',
@@ -898,7 +898,8 @@ class NumpyArrayIterator(Iterator):
         self.x = np.asarray(x, dtype=K.floatx())
         self.x_misc = x_misc
         channels_axis = 3 if data_format == 'channels_last' else 1
-        self.dir = dir
+        self.dir = dirprint
+
         self.width = width
         if y is not None:
             self.y = np.asarray(y)
@@ -968,15 +969,16 @@ class NumpyArrayIterator(Iterator):
         batch_x = np.zeros(tuple([len(index_array)] + list(self.x.shape)[1:]),
                            dtype=K.floatx())
         for i, j in enumerate(index_array):
-	    print('gg')
-	    print(self.dir)
-	    print(self.x[j])	
-	    print(f'{self.dir}/{self.x[j]}.jpg')
+            print('gg')
+            # print(self.dir)
+            print('../data/train_data')
+            print(self.x[j])
+            print(f'{self.dir}/{self.x[j]}.jpg')
             #s_img = cv2.imread(f'{self.dir}/{self.x[j]}.jpg')
-            #b, g, r = cv2.split(s_img)       # get b,g,r
-            #x = cv2.merge([r, g, b])     # switch it to rgb
+            # b, g, r = cv2.split(s_img)       # get b,g,r
+            # x = cv2.merge([r, g, b])     # switch it to rgb
             #resize_pad_img = resizeAndPad(x, (self.width, self.width))
-	    x = np.zeros((224,224,3))
+            x = np.zeros((224, 224, 3))
 
             # x = self.x[j]
             x = self.image_data_generator.random_transform(
