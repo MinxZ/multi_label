@@ -969,10 +969,10 @@ class NumpyArrayIterator(Iterator):
         batch_x = np.zeros((len(index_array), self.width, self.width)),
                            dtype = K.floatx())
         for i, j in enumerate(index_array):
-            s_img=cv2.imread(f'{self.dir}/{self.x[j]}.jpg')
-            b, g, r=cv2.split(s_img)       # get b,g,r
-            x=cv2.merge([r, g, b])     # switch it to rgb
-            resize_pad_img=resizeAndPad(x, (self.width, self.width))
+            # s_img=cv2.imread(f'{self.dir}/{self.x[j]}.jpg')
+            # b, g, r=cv2.split(s_img)       # get b,g,r
+            # x=cv2.merge([r, g, b])     # switch it to rgb
+            # resize_pad_img=resizeAndPad(x, (self.width, self.width))
             x=np.zeros((224, 224, 3))
 
             # x = self.x[j]
