@@ -897,10 +897,6 @@ class NumpyArrayIterator(Iterator):
             data_format = K.image_data_format()
         self.x = np.asarray(x, dtype=K.floatx())
         self.x_misc = x_misc
-        if self.x.ndim != 4:
-            raise ValueError('Input data in `NumpyArrayIterator` '
-                             'should have rank 4. You passed an array '
-                             'with shape', self.x.shape)
         channels_axis = 3 if data_format == 'channels_last' else 1
         if self.x.shape[channels_axis] not in {1, 3, 4}:
             warnings.warn('NumpyArrayIterator is set to use the '

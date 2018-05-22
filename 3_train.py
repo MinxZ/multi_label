@@ -12,7 +12,6 @@ from keras.callbacks import *
 from keras.layers import *
 from keras.models import *
 from keras.optimizers import *
-from keras.preprocessing.image import ImageDataGenerator
 from keras.regularizers import *
 from keras.utils.generic_utils import CustomObjectScope
 from tqdm import tqdm
