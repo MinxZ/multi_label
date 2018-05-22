@@ -898,15 +898,6 @@ class NumpyArrayIterator(Iterator):
         self.x = np.asarray(x, dtype=K.floatx())
         self.x_misc = x_misc
         channels_axis = 3 if data_format == 'channels_last' else 1
-        if self.x.shape[channels_axis] not in {1, 3, 4}:
-            warnings.warn('NumpyArrayIterator is set to use the '
-                          'data format convention "' + data_format + '" '
-                          '(channels on axis ' + str(channels_axis) +
-                          '), i.e. expected either 1, 3 or 4 '
-                          'channels on axis ' + str(channels_axis) + '. '
-                          'However, it was passed an array with shape ' +
-                          str(self.x.shape) + ' (' +
-                          str(self.x.shape[channels_axis]) + ' channels).')
         self.dir = dir
         self.width = width
         if y is not None:
@@ -977,10 +968,15 @@ class NumpyArrayIterator(Iterator):
         batch_x = np.zeros(tuple([len(index_array)] + list(self.x.shape)[1:]),
                            dtype=K.floatx())
         for i, j in enumerate(index_array):
-            s_img = cv2.imread(f'{dir}/{self.x[j]}.jpg')
-            b, g, r = cv2.split(s_img)       # get b,g,r
-            x = cv2.merge([r, g, b])     # switch it to rgb
-            resize_pad_img = resizeAndPad(x, (self.width, self.width))
+	    print('gg')
+	    print(self.dir)
+	    print(self.x[j])	
+	    print(f'{self.dir}/{self.x[j]}.jpg')
+            #s_img = cv2.imread(f'{self.dir}/{self.x[j]}.jpg')
+            #b, g, r = cv2.split(s_img)       # get b,g,r
+            #x = cv2.merge([r, g, b])     # switch it to rgb
+            #resize_pad_img = resizeAndPad(x, (self.width, self.width))
+	    x = np.zeros((224,224,3))
 
             # x = self.x[j]
             x = self.image_data_generator.random_transform(
