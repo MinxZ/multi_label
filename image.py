@@ -968,10 +968,8 @@ class NumpyArrayIterator(Iterator):
     def _get_batches_of_transformed_samples(self, index_array):
         batch_x = np.zeros(tuple([len(index_array)] + list(self.x.shape)[1:]),
                            dtype=K.floatx())
-        print(self.dir)
         print('../data/train_data')
         print(self.x[j])
-        print(f'{self.dir}/{self.x[j]}.jpg')
         print(index_array)
         for i, j in enumerate(index_array):
             # print('gg')
