@@ -511,7 +511,7 @@ class ImageDataGenerator(object):
                               'which overrides setting of '
                               '`samplewise_center`.')
 
-    def flow(self, x, dir, width, y=None, batch_size=32, shuffle=True, sample_weight=None, seed=None,
+    def flow(self, x, dir_path, width, y=None, batch_size=32, shuffle=True, sample_weight=None, seed=None,
              save_to_dir=None, save_prefix='', save_format='png', subset=None):
         """Takes numpy data & label arrays, and generates batches of augmented data.
 
@@ -555,7 +555,7 @@ class ImageDataGenerator(object):
                 If `y` is None, only the numpy array `x` is returned.
         """
         return NumpyArrayIterator(
-            x, dir, width, y, self,
+            x, dir_path, width, y, self,
             batch_size=batch_size,
             shuffle=shuffle,
             sample_weight=sample_weight,
@@ -895,11 +895,10 @@ class NumpyArrayIterator(Iterator):
                     y = y[split_idx:]
         if data_format is None:
             data_format = K.image_data_format()
-        self.x = np.asarray(x, dtype=K.floatx())
+        self.x = x
         self.x_misc = x_misc
         channels_axis = 3 if data_format == 'channels_last' else 1
-        self.dir = dirprint
-
+        self.dir_path = dir_path
         self.width = width
         if y is not None:
             self.y = np.asarray(y)
@@ -966,17 +965,18 @@ class NumpyArrayIterator(Iterator):
         return scaled_img
 
     def _get_batches_of_transformed_samples(self, index_array):
-        batch_x = np.zeros((len(index_array), self.width, self.width)),
-                           dtype = K.floatx())
-        for i, j in enumerate(index_array):
-            # s_img=cv2.imread(f'{self.dir}/{self.x[j]}.jpg')
-            # b, g, r=cv2.split(s_img)       # get b,g,r
-            # x=cv2.merge([r, g, b])     # switch it to rgb
-            # resize_pad_img=resizeAndPad(x, (self.width, self.width))
-            x=np.zeros((224, 224, 3))
+        batch_x = np.zeros((len(index_array), self.width,
+                            self.width, 3), dtype=K.floatx())
 
-            # x = self.x[j]
-            x=self.image_data_generator.random_transform(
+        for i, j in enumerate(index_array):
+            print(f'{self.dir_path}/{self.x[j]}.jpg')
+            s_img = cv2.imread(f'{self.dir_path}/{self.x[j]}.jpg')
+            b, g, r = cv2.split(s_img)       # get b,g,r
+            rgb_img = cv2.merge([r, g, b])     # switch it to rgb
+            x = resizeAndPad(rgb_img, (self.width, self.width))
+            # x = np.zeros((224, 224, 3))
+
+            x = self.image_data_generator.random_transform(
                 x.astype(K.floatx()))
             x = self.image_data_generator.standardize(x)
             batch_x[i] = x
