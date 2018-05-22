@@ -58,6 +58,16 @@ model.compile(
     optimizer=SGD(lr=lr, momentum=0.9, nesterov=True),
     metrics=['binary_accuracy'])
 
+
+# callbacks
+early_stopping = EarlyStopping(
+    monitor='val_loss', patience=patience, verbose=2, mode='auto')
+checkpointer = ModelCheckpoint(
+    filepath=f'../models/{model_name}.h5', verbose=0, save_best_only=True)
+reduce_lr = ReduceLROnPlateau(
+    factor=0.3, patience=reduce_lr_patience, verbose=2)
+
+
 # datagen and val_datagen
 datagen = ImageDataGenerator(
     preprocessing_function=preprocess_input,
@@ -72,15 +82,6 @@ datagen = ImageDataGenerator(
     fill_mode='nearest')
 # val_datagen = ImageDataGenerator()
 val_datagen = ImageDataGenerator(preprocessing_function=preprocess_input)
-
-
-# callbacks
-early_stopping = EarlyStopping(
-    monitor='val_loss', patience=patience, verbose=2, mode='auto')
-checkpointer = ModelCheckpoint(
-    filepath=f'../models/{model_name}.h5', verbose=0, save_best_only=True)
-reduce_lr = ReduceLROnPlateau(
-    factor=0.3, patience=reduce_lr_patience, verbose=2)
 
 # Start fitting model
 print(" Fine tune " + model_name + ": \n")
