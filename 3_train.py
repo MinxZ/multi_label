@@ -18,9 +18,8 @@ from keras.utils.generic_utils import CustomObjectScope
 from tqdm import tqdm
 
 from image import ImageDataGenerator
-
-# from 1_load_data import *
-# from m_model import *
+from load_data import *
+from model import *
 
 # Load datasets
 x_train, y_train, x_val, y_val = load_multi_label_data('../data/json')
