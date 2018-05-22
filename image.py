@@ -969,7 +969,7 @@ class NumpyArrayIterator(Iterator):
         batch_x = np.zeros(tuple([len(index_array)] + list(self.x.shape)[1:]),
                            dtype=K.floatx())
         for i, j in enumerate(index_array):
-            print('gg')
+            # print('gg')
             # print(self.dir)
             print('../data/train_data')
             print(self.x[j])
