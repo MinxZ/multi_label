@@ -8,6 +8,51 @@ from keras.optimizers import *
 from keras.regularizers import *
 
 
+def f1_score(y_true, y_pred):
+    y_pred = tf.round(y_pred)
+
+    TP = tf.count_nonzero(y_pred * y_true)
+    TN = tf.count_nonzero((y_pred - 1) * (y_true - 1))
+    FP = tf.count_nonzero(y_pred * (y_true - 1))
+    FN = tf.count_nonzero((y_pred - 1) * y_true)
+
+    precision = TP / (TP + FP)
+    recall = TP / (TP + FN)
+    f1 = 2 * precision * recall / (precision + recall)
+
+    return f1
+
+
+def precision(y_true, y_pred):
+    y_pred = tf.round(y_pred)
+
+    TP = tf.count_nonzero(y_pred * y_true)
+    TN = tf.count_nonzero((y_pred - 1) * (y_true - 1))
+    FP = tf.count_nonzero(y_pred * (y_true - 1))
+    FN = tf.count_nonzero((y_pred - 1) * y_true)
+
+    precision = TP / (TP + FP)
+    recall = TP / (TP + FN)
+    f1 = 2 * precision * recall / (precision + recall)
+
+    return precision
+
+
+def recall(y_true, y_pred):
+    y_pred = tf.round(y_pred)
+
+    TP = tf.count_nonzero(y_pred * y_true)
+    TN = tf.count_nonzero((y_pred - 1) * (y_true - 1))
+    FP = tf.count_nonzero(y_pred * (y_true - 1))
+    FN = tf.count_nonzero((y_pred - 1) * y_true)
+
+    precision = TP / (TP + FP)
+    recall = TP / (TP + FN)
+    f1 = 2 * precision * recall / (precision + recall)
+
+    return recall
+
+
 def get_features(MODEL, data, batch_size):
     cnn_model = MODEL(input_shape=(width, width, 3),
                       include_top=False,  weights='imagenet', pooling='avg')
@@ -43,7 +88,7 @@ def fc_model(MODEL, x_train, y_train, batch_size):
     model_fc.compile(
         optimizer='adam',
         loss='binary_crossentropy',
-        metrics=['binary_accuracy'])
+        metrics=[f1_score, precision, recall])
     early_stopping = EarlyStopping(
         monitor='val_loss', patience=10, verbose=1, mode='auto')
     checkpointer = ModelCheckpoint(
@@ -55,6 +100,19 @@ def fc_model(MODEL, x_train, y_train, batch_size):
         epochs=10000,
         validation_split=0.1,
         callbacks=[checkpointer, early_stopping])
+
+# index_array = np.random.permutation(n)[:6000]
+# batch_x = np.zeros((len(index_array), width, width, 3))
+# batch_y = y_train[index_array]
+# for i, j in enumerate(index_array):
+#     s_img = cv2.imread(f'../data/train_data/{j+1}.jpg')
+#     b, g, r = cv2.split(s_img)       # get b,g,r
+#     rgb_img = cv2.merge([r, g, b])     # switch it to rgb
+#     x = resizeAndPad(rgb_img, (width, width))
+#     batch_x[i] = x
+#
+# print(' Train fc layer firstly.\n')
+# fc_model(MODEL, batch_x, batch_y, 64)
 
 
 def build_model(MODEL, width, n_class):
