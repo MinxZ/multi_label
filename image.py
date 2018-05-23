@@ -971,7 +971,7 @@ class NumpyArrayIterator(Iterator):
 
         for i, j in enumerate(index_array):
             # print(f'{self.dir_path}/{self.x[j]}.jpg')
-            s_img = cv2.imread(f'{self.dir_path}/{self.x[j]}.jpg')
+            s_img = cv2.imread(f'{self.dir_path}/{j+1}.jpg')
             b, g, r = cv2.split(s_img)       # get b,g,r
             rgb_img = cv2.merge([r, g, b])     # switch it to rgb
             x = resizeAndPad(rgb_img, (self.width, self.width))

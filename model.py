@@ -18,15 +18,18 @@ def get_features(MODEL, data, batch_size):
     # x = Dropout(0.5)(x)
     # x = Dense(256, activation='elu', name='fc')(x)
     cnn_model = Model(inputs, x)
-    cnn_model.load_weights('../models/Xception_69_256.h5', by_name=True)
+    # cnn_model.load_weights('../models/Xception_69_256.h5', by_name=True)
 
     features = cnn_model.predict(data, batch_size=batch_size, verbose=1)
     np.save('../data/fc_features', features)
     return features
 
 
-def fc_model(MODEL, x_train, batch_size):
-    features = np.load('../data/fc_features.npy')
+def fc_model(MODEL, x_train, y_train, batch_size):
+    try:
+        features = np.load('../data/fc_features.npy')
+    except:
+        features = get_features(MODEL, x_train, 16)
 
     # Training fc models
     inputs = Input(features.shape[1:])
