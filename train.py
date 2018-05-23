@@ -40,6 +40,9 @@ model.load_weights(f'../models/fc_{model_name}.h5', by_name=True)
 print(f' Load fc_{model_name}.h5 successfully.\n')
 # model.load_weights('../models/Xception_69_256.h5', by_name=True)
 
+
+reduce_lr_patience = 5
+patience = 10  # reduce_lr_patience+1 + 1
 # callbacks
 reduce_lr_patience = 5
 patience = 10  # reduce_lr_patience+1 + 1
