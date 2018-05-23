@@ -38,7 +38,8 @@ model = build_model(MODEL, width, n_class)
 print('\n Loading weights. \n')
 model.load_weights(f'../models/fc_{model_name}.h5', by_name=True)
 print(f' Load fc_{model_name}.h5 successfully.\n')
-# model.load_weights('../models/Xception_69_256.h5', by_name=True)
+model.load_weights(f'../models/{model_name}.h5', by_name=True)
+print(f' Load {model_name}.h5 successfully.\n')
 
 # callbacks
 reduce_lr_patience = 5
@@ -52,19 +53,19 @@ reduce_lr = ReduceLROnPlateau(
 
 
 # datagen and val_datagen
-# datagen = ImageDataGenerator(
-#     preprocessing_function=preprocess_input,
-#     # preprocessing_function=get_random_eraser(
-#     #     p=0.2, v_l=0, v_h=255, pixel_level=True),  # 0.1-0.4
-#     rotation_range=20,  # 10-30
-#     width_shift_range=0.2,  # 0.1-0.3
-#     height_shift_range=0.2,  # 0.1-0.3
-#     shear_range=0.2,  # 0.1-0.3
-#     zoom_range=0.2,  # 0.1-0.3
-#     horizontal_flip=True,
-#     fill_mode='nearest')
+datagen = ImageDataGenerator(
+    preprocessing_function=preprocess_input,
+    # preprocessing_function=get_random_eraser(
+    #     p=0.2, v_l=0, v_h=255, pixel_level=True),  # 0.1-0.4
+    rotation_range=20,  # 10-30
+    width_shift_range=0.2,  # 0.1-0.3
+    height_shift_range=0.2,  # 0.1-0.3
+    shear_range=0.2,  # 0.1-0.3
+    zoom_range=0.2,  # 0.1-0.3
+    horizontal_flip=True,
+    fill_mode='nearest')
 
-datagen = ImageDataGenerator(preprocessing_function=preprocess_input)
+# datagen = ImageDataGenerator(preprocessing_function=preprocess_input)
 val_datagen = ImageDataGenerator(preprocessing_function=preprocess_input)
 
 
