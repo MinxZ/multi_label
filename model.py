@@ -8,6 +8,51 @@ from keras.optimizers import *
 from keras.regularizers import *
 
 
+def f1_score(y_true, y_pred):
+    y_pred = tf.round(y_pred)
+
+    TP = tf.count_nonzero(y_pred * y_true)
+    TN = tf.count_nonzero((y_pred - 1) * (y_true - 1))
+    FP = tf.count_nonzero(y_pred * (y_true - 1))
+    FN = tf.count_nonzero((y_pred - 1) * y_true)
+
+    precision = TP / (TP + FP)
+    recall = TP / (TP + FN)
+    f1 = 2 * precision * recall / (precision + recall)
+
+    return f1
+
+
+def precision(y_true, y_pred):
+    y_pred = tf.round(y_pred)
+
+    TP = tf.count_nonzero(y_pred * y_true)
+    TN = tf.count_nonzero((y_pred - 1) * (y_true - 1))
+    FP = tf.count_nonzero(y_pred * (y_true - 1))
+    FN = tf.count_nonzero((y_pred - 1) * y_true)
+
+    precision = TP / (TP + FP)
+    recall = TP / (TP + FN)
+    f1 = 2 * precision * recall / (precision + recall)
+
+    return precision
+
+
+def recall(y_true, y_pred):
+    y_pred = tf.round(y_pred)
+
+    TP = tf.count_nonzero(y_pred * y_true)
+    TN = tf.count_nonzero((y_pred - 1) * (y_true - 1))
+    FP = tf.count_nonzero(y_pred * (y_true - 1))
+    FN = tf.count_nonzero((y_pred - 1) * y_true)
+
+    precision = TP / (TP + FP)
+    recall = TP / (TP + FN)
+    f1 = 2 * precision * recall / (precision + recall)
+
+    return recall
+
+
 def get_features(MODEL, data, batch_size):
     cnn_model = MODEL(input_shape=(width, width, 3),
                       include_top=False,  weights='imagenet', pooling='avg')
@@ -43,7 +88,7 @@ def fc_model(MODEL, x_train, y_train, batch_size):
     model_fc.compile(
         optimizer='adam',
         loss='binary_crossentropy',
-        metrics=['binary_accuracy'])
+        metrics=[f1_score, precision, recall])
     early_stopping = EarlyStopping(
         monitor='val_loss', patience=10, verbose=1, mode='auto')
     checkpointer = ModelCheckpoint(

@@ -18,7 +18,7 @@ from keras.regularizers import *
 from keras.utils.generic_utils import CustomObjectScope
 from tqdm import tqdm
 
-from image import ImageDataGenerator
+from image import ImageDataGenerator, resizeAndPad
 from load_data import *
 from model import *
 
@@ -37,7 +37,7 @@ n = x_train.shape[0]
 #     rgb_img = cv2.merge([r, g, b])     # switch it to rgb
 #     x = resizeAndPad(rgb_img, (width, width))
 #     batch_x[i] = x
-
+#
 # print(' Train fc layer firstly.\n')
 # fc_model(MODEL, batch_x, batch_y, 64)
 
@@ -53,6 +53,9 @@ model.load_weights(f'../models/fc_{model_name}.h5', by_name=True)
 print(f' Load fc_{model_name}.h5 successfully.\n')
 # model.load_weights('../models/Xception_69_256.h5', by_name=True)
 
+
+reduce_lr_patience = 5
+patience = 10  # reduce_lr_patience+1 + 1
 # callbacks
 early_stopping = EarlyStopping(
     monitor='val_loss', patience=patience, verbose=2, mode='auto')
@@ -74,31 +77,13 @@ datagen = ImageDataGenerator(
     zoom_range=0.2,  # 0.1-0.3
     horizontal_flip=True,
     fill_mode='nearest')
-# datagen = ImageDataGenerator(preprocessing_function=preprocess_input)
 val_datagen = ImageDataGenerator(preprocessing_function=preprocess_input)
+
 
 # Compile model
 optimizer = 'SGD'
 lr = 5e-3  # 1-5e4
 epoch = 1e4
-reduce_lr_patience = 5
-patience = 10  # reduce_lr_patience+1 + 1
-
-
-def f1_score(y_true, y_pred):
-    y_pred = tf.round(y_pred)
-
-    TP = tf.count_nonzero(y_pred * y_true)
-    TN = tf.count_nonzero((y_pred - 1) * (y_true - 1))
-    FP = tf.count_nonzero(y_pred * (y_true - 1))
-    FN = tf.count_nonzero((y_pred - 1) * y_true)
-
-    precision = TP / (TP + FP)
-    recall = TP / (TP + FN)
-    f1 = 2 * precision * recall / (precision + recall)
-
-    return f1
-
 
 print(f"  Optimizer={optimizer} lr={str(lr)} \n")
 model.compile(
