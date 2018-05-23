@@ -20,8 +20,7 @@ from tqdm import tqdm
 
 from image import ImageDataGenerator
 from load_data import *
-
-# from model import *
+from model import *
 
 # Load datasets
 x_train, y_train, x_val, y_val = load_multi_label_data('../data/json')
