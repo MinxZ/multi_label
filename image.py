@@ -970,7 +970,7 @@ class NumpyArrayIterator(Iterator):
                             self.width, 3), dtype=K.floatx())
 
         for i, j in enumerate(index_array):
-            print(f'{self.dir_path}/{self.x[j]}.jpg')
+            # print(f'{self.dir_path}/{self.x[j]}.jpg')
             s_img = cv2.imread(f'{self.dir_path}/{self.x[j]}.jpg')
             b, g, r = cv2.split(s_img)       # get b,g,r
             rgb_img = cv2.merge([r, g, b])     # switch it to rgb
@@ -982,20 +982,6 @@ class NumpyArrayIterator(Iterator):
             x = self.image_data_generator.standardize(x)
             batch_x[i] = x
 
-        if self.save_to_dir:
-            for i, j in enumerate(index_array):
-                img = array_to_img(batch_x[i], self.data_format, scale=True)
-                fname = '{prefix}_{index}_{hash}.{format}'.format(
-                    prefix=self.save_prefix,
-                    index=j,
-                    hash=np.random.randint(1e4),
-                    format=self.save_format)
-                img.save(os.path.join(self.save_to_dir, fname))
-        batch_x_miscs = [xx[index_array] for xx in self.x_misc]
-        output = (batch_x if batch_x_miscs == []
-                  else [batch_x] + batch_x_miscs,)
-        if self.y is None:
-            return output[0]
         output += (self.y[index_array],)
         if self.sample_weight is not None:
             output += (self.sample_weight[index_array],)
