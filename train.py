@@ -28,7 +28,7 @@ n_class = y_val.shape[1]
 # Loading model
 model_name = 'Xception'
 MODEL = Xception
-batch_size = 64
+batch_size = 32
 model = build_model(MODEL, width, n_class)
 
 """
