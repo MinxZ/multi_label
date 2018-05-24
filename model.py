@@ -53,7 +53,7 @@ def recall(y_true, y_pred):
     return recall
 
 
-def get_features(MODEL, data, batch_size):
+def get_features(MODEL, data, width, batch_size):
     cnn_model = MODEL(input_shape=(width, width, 3),
                       include_top=False,  weights='imagenet', pooling='avg')
     inputs = Input((width, width, 3))
@@ -66,21 +66,21 @@ def get_features(MODEL, data, batch_size):
     # cnn_model.load_weights('../models/Xception_69_256.h5', by_name=True)
 
     features = cnn_model.predict(data, batch_size=batch_size, verbose=1)
-    np.save('../data/fc_features', features)
+    np.save(f'../data/fc_features_{model_name}', features)
     return features
 
 
-def fc_model(MODEL, x_train, y_train, batch_size):
+def fc_model(MODEL, x_train, y_train, width, batch_size):
     try:
-        features = np.load('../data/fc_features.npy')
+        features = np.load(f'../data/fc_features_{model_name}.npy')
     except:
-        features = get_features(MODEL, x_train, 16)
+        features = get_features(MODEL, x_train, width, 16)
 
     # Training fc models
     inputs = Input(features.shape[1:])
     x = inputs
-    x = Dropout(0.5)(x)
-    x = Dense(256, activation='elu', name='fc')(x)
+    # x = Dropout(0.5)(x)
+    # x = Dense(256, activation='elu', name='fc')(x)
     x = Dropout(0.5)(x)
     x = Dense(n_class, activation='sigmoid', name='predictions')(x)
     model_fc = Model(inputs, x)
@@ -101,19 +101,6 @@ def fc_model(MODEL, x_train, y_train, batch_size):
         validation_split=0.1,
         callbacks=[checkpointer, early_stopping])
 
-# index_array = np.random.permutation(n)[:6000]
-# batch_x = np.zeros((len(index_array), width, width, 3))
-# batch_y = y_train[index_array]
-# for i, j in enumerate(index_array):
-#     s_img = cv2.imread(f'../data/train_data/{j+1}.jpg')
-#     b, g, r = cv2.split(s_img)       # get b,g,r
-#     rgb_img = cv2.merge([r, g, b])     # switch it to rgb
-#     x = resizeAndPad(rgb_img, (width, width))
-#     batch_x[i] = x
-#
-# print(' Train fc layer firstly.\n')
-# fc_model(MODEL, batch_x, batch_y, 64)
-
 
 def build_model(MODEL, width, n_class):
     print(' Build model. \n')
@@ -124,8 +111,8 @@ def build_model(MODEL, width, n_class):
     x = inputs
     # x = Lambda(preprocess_input, name='preprocessing')(x)
     x = cnn_model(x)
-    x = Dropout(0.5)(x)
-    x = Dense(256, activation='elu', name='fc')(x)
+    # x = Dropout(0.5)(x)
+    # x = Dense(256, activation='elu', name='fc')(x)
     x = Dropout(0.5)(x)
     x = Dense(n_class, activation='sigmoid', name='predictions')(x)
     model = Model(inputs=inputs, outputs=x)
