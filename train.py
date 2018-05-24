@@ -18,7 +18,7 @@ from keras.regularizers import *
 from keras.utils.generic_utils import CustomObjectScope
 from tqdm import tqdm
 
-from image import ImageDataGenerator, resizeAndPad
+from image import ImageDataGenerator, get_random_eraser, resizeAndPad
 from load_data import *
 from model import *
 
@@ -41,27 +41,37 @@ print(f' Load fc_{model_name}.h5 successfully.\n')
 model.load_weights(f'../models/{model_name}.h5', by_name=True)
 print(f' Load {model_name}.h5 successfully.\n')
 
+# Compile model
+optimizer = 'Adam'
+lr = 1e-4  # 1-5e4
+print(f"  Optimizer={optimizer} lr={str(lr)} \n")
+model.compile(
+    loss='binary_crossentropy',
+    optimizer=Adam(lr=lr),
+    # optimizer=SGD(lr=lr, momentum=0.9, nesterov=True),
+    # metrics=['binary_accuracy'])
+    metrics=[f1_score])
+
 # callbacks
-reduce_lr_patience = 5
-patience = 10  # reduce_lr_patience+1 + 1
+reduce_lr_patience = 2
+patience = 5  # reduce_lr_patience+1 + 1
 early_stopping = EarlyStopping(
-    monitor='val_loss', patience=patience, verbose=2, mode='auto')
+    monitor='f1_score', patience=patience, verbose=2, mode='auto')
 checkpointer = ModelCheckpoint(
     filepath=f'../models/{model_name}.h5', verbose=0, save_best_only=True)
 reduce_lr = ReduceLROnPlateau(
     factor=0.3, patience=reduce_lr_patience, verbose=2)
-
 
 # datagen and val_datagen
 datagen = ImageDataGenerator(
     preprocessing_function=preprocess_input,
     # preprocessing_function=get_random_eraser(
     #     p=0.2, v_l=0, v_h=255, pixel_level=True),  # 0.1-0.4
-    rotation_range=20,  # 10-30
-    width_shift_range=0.2,  # 0.1-0.3
-    height_shift_range=0.2,  # 0.1-0.3
-    shear_range=0.2,  # 0.1-0.3
-    zoom_range=0.2,  # 0.1-0.3
+    rotation_range=10,  # 10-30
+    width_shift_range=0.1,  # 0.1-0.3
+    height_shift_range=0.1,  # 0.1-0.3
+    shear_range=0.1,  # 0.1-0.3
+    zoom_range=0.1,  # 0.1-0.3
     horizontal_flip=True,
     fill_mode='nearest')
 
@@ -69,27 +79,16 @@ datagen = ImageDataGenerator(
 val_datagen = ImageDataGenerator(preprocessing_function=preprocess_input)
 
 
-# Compile model
-optimizer = 'SGD'
-lr = 5e-3  # 1-5e4
-epoch = 1e4
-print(f"  Optimizer={optimizer} lr={str(lr)} \n")
-model.compile(
-    loss='binary_crossentropy',
-    optimizer=Adam(),
-    # optimizer=SGD(lr=lr, momentum=0.9, nesterov=True),
-    # metrics=['binary_accuracy'])
-    metrics=[f1_score, precision, recall])
-
 # Start fitting model
 print(" Fine tune " + model_name + ": \n")
+epoch = 1e4
 model.fit_generator(
     datagen.flow(x_train, '../data/train_data', width,
                  y_train, batch_size=batch_size),
-    steps_per_epoch=len(x_train) / batch_size / 20,
+    steps_per_epoch=len(x_train) / batch_size / 80,
     validation_data=val_datagen.flow(
         x_val, '../data/val_data', width, y_val, batch_size=batch_size),
-    validation_steps=len(x_val) / batch_size,
+    validation_steps=len(x_val) / batch_size / 2,
     epochs=epoch,
     callbacks=[early_stopping, checkpointer, reduce_lr],
     workers=4)
