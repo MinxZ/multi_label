@@ -1,3 +1,4 @@
+import keras.backend as K
 import numpy as np
 from keras.applications import Xception
 from keras.applications.inception_v3 import preprocess_input
@@ -62,7 +63,29 @@ def recall(y_true, y_pred):
 
     return recall
 
+# index_array = np.random.permutation(n)[:6000]
+# batch_x = np.zeros((len(index_array), width, width, 3))
+# batch_y = y_train[index_array]
+# for i, j in enumerate(tqdm(index_array)):
+#     s_img = cv2.imread(f'../data/train_data/{j+1}.jpg')
+#     b, g, r = cv2.split(s_img)       # get b,g,r
+#     rgb_img = cv2.merge([r, g, b])     # switch it to rgb
+#     x = resizeAndPad(rgb_img, (width, width))
+#     batch_x[i] = x
 
+
+# datagen and val_datagen
+# datagen = ImageDataGenerator(
+#     preprocessing_function=preprocess_input,
+#     # preprocessing_function=get_random_eraser(
+#     #     p=0.2, v_l=0, v_h=255, pixel_level=True),  # 0.1-0.4
+#     rotation_range=10,  # 10-30
+#     width_shift_range=0.1,  # 0.1-0.3
+#     height_shift_range=0.1,  # 0.1-0.3
+#     shear_range=0.1,  # 0.1-0.3
+#     zoom_range=0.1,  # 0.1-0.3
+#     horizontal_flip=True,
+#     fill_mode='nearest')
 def get_features(MODEL, data, width, batch_size):
     cnn_model = MODEL(input_shape=(width, width, 3),
                       include_top=False,  weights='imagenet', pooling='avg')
@@ -99,11 +122,11 @@ def fc_model(MODEL, x_train, y_train, width, batch_size):
         optimizer='adam',
         # loss='binary_crossentropy',
         loss=f1_loss,
-        metrics=[f1_score])
+        metrics=[f1_score, precision, recall])
     early_stopping = EarlyStopping(
         monitor='val_loss', patience=10, verbose=1, mode='auto')
     checkpointer = ModelCheckpoint(
-        filepath=f'../models/fc_{model_name}_{loss_name}.h5', verbose=0, save_best_only=True)
+        filepath=f'../models/fc_{model_name}.h5', verbose=0, save_best_only=True)
     model_fc.fit(
         features,
         y_train,

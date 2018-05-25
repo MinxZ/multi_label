@@ -30,7 +30,7 @@ validation_steps = len(x_val) / batch_size,
 
 
 """
-Xception_3 2048 228
+Xception_f1 2048 228
 """
 # lr
 
