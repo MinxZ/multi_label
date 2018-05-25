@@ -8,6 +8,16 @@ from keras.optimizers import *
 from keras.regularizers import *
 
 
+def f1_loss(y_true, y_pred):
+
+    TP = K.sum(y_true * y_pred)
+    precision = TP / K.sum(y_true)
+    recall = TP / K.sum(y_pred)
+    f1 = (1 - 2 * precision * recall / (precision + recall))
+
+    return f1
+
+
 def f1_score(y_true, y_pred):
     y_pred = tf.round(y_pred)
 

@@ -89,10 +89,16 @@ lr = 1e-4  # 1-5e4
 print(f"  Optimizer={optimizer} lr={str(lr)} \n")
 model.compile(
     loss='binary_crossentropy',
-    # optimizer=Adam(lr=lr),
     optimizer=Adam(lr=lr),
     # optimizer=SGD(lr=lr, momentum=0.9, nesterov=True),
     metrics=[f1_score])
+
+model.compile(
+    loss=f1_loss,
+    optimizer=Adam(lr=1e-5),
+    # optimizer=SGD(lr=lr, momentum=0.9, nesterov=True),
+    metrics=[f1_score])
+
 
 # Start fitting model
 print(" Fine tune " + model_name + ": \n")
@@ -101,7 +107,7 @@ epoch = 1e4
 model.fit_generator(
     datagen.flow(x_train, '../data/train_data', width,
                  y_train, batch_size=batch_size),
-    steps_per_epoch=len(x_train) / batch_size / 20,
+    steps_per_epoch=len(x_train) / batch_size / 80,
     validation_data=val_datagen.flow(
         x_val, '../data/val_data', width, y_val, batch_size=batch_size),
     validation_steps=len(x_val) / batch_size,
