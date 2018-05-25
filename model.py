@@ -10,9 +10,13 @@ from keras.regularizers import *
 
 def f1_loss(y_true, y_pred):
 
+<<<<<<< HEAD
     TP = K.sum(y_pred * y_true)
     # TP = K.sum(-k.log(y_pred) * y_true) + \
     #     K.sum(-k.log(1 - y_pred) * (1 - y_true))
+=======
+    TP = K.sum(y_true * y_pred)
+>>>>>>> 0dd8278a015a41534c1f4555704379b98d942e5b
     precision = TP / K.sum(y_true)
     recall = TP / K.sum(y_pred)
     f1 = (1 - 2 * precision * recall / (precision + recall))
