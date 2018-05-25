@@ -11,8 +11,6 @@ from keras.regularizers import *
 def f1_loss(y_true, y_pred):
 
     TP = K.sum(y_pred * y_true)
-    # TP = K.sum(-k.log(y_pred) * y_true) + \
-    #     K.sum(-k.log(1 - y_pred) * (1 - y_true))
     precision = TP / K.sum(y_true)
     recall = TP / K.sum(y_pred)
     f1 = (1 - 2 * precision * recall / (precision + recall))
@@ -99,12 +97,13 @@ def fc_model(MODEL, x_train, y_train, width, batch_size):
 
     model_fc.compile(
         optimizer='adam',
-        loss='binary_crossentropy',
-        metrics=[f1_score, precision, recall])
+        # loss='binary_crossentropy',
+        loss=f1_loss,
+        metrics=[f1_score])
     early_stopping = EarlyStopping(
         monitor='val_loss', patience=10, verbose=1, mode='auto')
     checkpointer = ModelCheckpoint(
-        filepath=f'../models/fc_{model_name}.h5', verbose=0, save_best_only=True)
+        filepath=f'../models/fc_{model_name}_{loss_name}.h5', verbose=0, save_best_only=True)
     model_fc.fit(
         features,
         y_train,

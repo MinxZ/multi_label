@@ -29,7 +29,7 @@ width = 224
 n_class = y_val.shape[1]
 n = x_train.shape[0]
 
-model_name = 'Xception_2'
+model_name = 'Xception_3'
 MODEL = Xception
 model = build_model(MODEL, width, n_class)
 
@@ -44,18 +44,14 @@ model = build_model(MODEL, width, n_class)
 #     batch_x[i] = x
 #
 # print(' Train fc layer firstly.\n')
-fc_model(MODEL, batch_x, batch_y, width, 64)
+# fc_model(MODEL, batch_x, batch_y, width, 64)
 
 # Loading model
-
+loss_name = 'f1'
 # Load weights
 print('\n Loading weights. \n')
-
-model.load_weights(f'../models/fc_{model_name}.h5', by_name=True)
-# print(f' Load fc_{model_name}.h5 successfully.\n')
-
-# model.load_weights(f'../models/{model_name}.h5', by_name=True)
-# print(f' Load {model_name}.h5 successfully.\n')
+model.load_weights(f'../models/fc_{model_name}_{loss_name}.h5', by_name=True)
+# model.load_weights(f'../models/{model_name}_{loss_name}.h5', by_name=True)
 
 # callbacks
 reduce_lr_patience = 5
@@ -63,7 +59,7 @@ patience = 10  # reduce_lr_patience+1 + 1
 early_stopping = EarlyStopping(
     monitor='val_loss', patience=patience, verbose=2, mode='auto')
 checkpointer = ModelCheckpoint(
-    filepath=f'../models/{model_name}.h5', verbose=0, save_best_only=True)
+    filepath=f'../models/{model_name}_{loss_name}.h5', verbose=0, save_best_only=True)
 reduce_lr = ReduceLROnPlateau(
     factor=np.sqrt(0.1), patience=reduce_lr_patience, verbose=2)
 
@@ -85,17 +81,13 @@ val_datagen = ImageDataGenerator(preprocessing_function=preprocess_input)
 
 # Compile model
 optimizer = 'Adam'
-lr = 1e-4  # 1-5e4
+lr = 1e-3  # 1-5e4
 print(f"  Optimizer={optimizer} lr={str(lr)} \n")
-model.compile(
-    loss='binary_crossentropy',
-    optimizer=Adam(lr=lr),
-    # optimizer=SGD(lr=lr, momentum=0.9, nesterov=True),
-    metrics=[f1_score])
+# loss='binary_crossentropy',
 
 model.compile(
     loss=f1_loss,
-    optimizer=Adam(lr=1e-5),
+    optimizer=Adam(lr=lr),
     # optimizer=SGD(lr=lr, momentum=0.9, nesterov=True),
     metrics=[f1_score])
 
