@@ -86,7 +86,7 @@ def recall(y_true, y_pred):
 #     zoom_range=0.1,  # 0.1-0.3
 #     horizontal_flip=True,
 #     fill_mode='nearest')
-def get_features(MODEL, data, width, batch_size):
+def get_features(MODEL, data, width, batch_size, model_name):
     cnn_model = MODEL(input_shape=(width, width, 3),
                       include_top=False,  weights='imagenet', pooling='avg')
     inputs = Input((width, width, 3))
@@ -103,11 +103,11 @@ def get_features(MODEL, data, width, batch_size):
     return features
 
 
-def fc_model(MODEL, x_train, y_train, width, batch_size):
+def fc_model(MODEL, x_train, y_train, width, batch_size, model_name):
     try:
         features = np.load(f'../data/fc_features_{model_name}.npy')
     except:
-        features = get_features(MODEL, x_train, width, 8)
+        features = get_features(MODEL, x_train, width, batch_size, model_name)
 
     # Training fc models
     inputs = Input(features.shape[1:])

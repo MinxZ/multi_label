@@ -24,6 +24,7 @@ from model import *
 # Load datasets
 x_train, y_train, x_val, y_val = load_multi_label_data('../data/json')
 width = 224
+batch_size = 10
 n_class = y_val.shape[1]
 n = x_train.shape[0]
 
@@ -50,8 +51,7 @@ if a:
     model = build_model(MODEL, width, n_class)
 
     print(' Train fc layer firstly.\n')
-    fc_model(MODEL, batch_x, batch_y, width, 64)
-
+    fc_model(MODEL, batch_x, batch_y, width, batch_size, model_name)
     # Load weights
     print('\n Loading weights. \n')
     model.load_weights(f'../models/fc_{model_name}.h5', by_name=True)
