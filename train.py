@@ -19,8 +19,7 @@ from tqdm import tqdm
 
 from image import ImageDataGenerator, resizeAndPad
 from load_data import *
-
-# from model import *
+from model import *
 
 # Load datasets
 x_train, y_train, x_val, y_val = load_multi_label_data('../data/json')
@@ -36,10 +35,6 @@ n = x_train.shape[0]
 model_name = 'InceptionResNetV2'
 MODEL = InceptionResNetV2
 batch_size = 16
-
-# model_name = 'NASNetLarge'
-# MODEL = NASNetLarge
-# batch_size = 6
 
 # with CustomObjectScope({'f1_loss': f1_loss, 'f1_score': f1_score, 'precision': precision, 'recall': recall}):
 #     model = load_model(f'../models/Xception_f1.h5')
@@ -98,7 +93,7 @@ if b:
 
 
 # Start fitting model
-fold = 100
+fold = 20
 print(" Fine tune " + model_name + ": \n")
 epoch = 1e4
 model.fit_generator(

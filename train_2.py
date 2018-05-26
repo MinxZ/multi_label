@@ -19,8 +19,7 @@ from tqdm import tqdm
 
 from image import ImageDataGenerator, resizeAndPad
 from load_data import *
-
-# from model import *
+from model import *
 
 # Load datasets
 x_train, y_train, x_val, y_val = load_multi_label_data('../data/json')
@@ -39,7 +38,7 @@ n = x_train.shape[0]
 
 model_name = 'NASNetLarge'
 MODEL = NASNetLarge
-batch_size = 6
+batch_size = 4
 
 # with CustomObjectScope({'f1_loss': f1_loss, 'f1_score': f1_score, 'precision': precision, 'recall': recall}):
 #     model = load_model(f'../models/Xception_f1.h5')
@@ -68,10 +67,11 @@ except:
         np.save('../data/batch_y', batch_y)
 
     fc_model(MODEL, batch_x, batch_y, width, batch_size, model_name, n_class)
+    model.load_weights(f'../models/fc_{model_name}.h5', by_name=True)
 
 # callbacks
-reduce_lr_patience = 4
-patience = 9  # reduce_lr_patience+1 + 1
+reduce_lr_patience = 3
+patience = 6  # reduce_lr_patience+1 + 1
 early_stopping = EarlyStopping(
     monitor='val_loss', patience=patience, verbose=2, mode='auto')
 checkpointer = ModelCheckpoint(
@@ -82,8 +82,9 @@ reduce_lr = ReduceLROnPlateau(
 datagen = ImageDataGenerator(preprocessing_function=preprocess_input)
 val_datagen = ImageDataGenerator(preprocessing_function=preprocess_input)
 
+batch_size = 4
 b = 1
-lr = 3e-4
+lr = 1e-4
 if b:
     # Compile model
     optimizer = 'Adam'
@@ -98,7 +99,7 @@ if b:
 
 
 # Start fitting model
-fold = 100
+fold = 20
 print(" Fine tune " + model_name + ": \n")
 epoch = 1e4
 model.fit_generator(

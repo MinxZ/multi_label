@@ -44,7 +44,7 @@ y_pred_test = model.predict_generator(
                       y_test, batch_size=1, shuffle=False),
     verbose=1)
 
-l = []
+np.save(f'y_pred_{model_name}', y_pred_test)
 y_pred_test1 = np.round(y_pred_test)
 where_1 = mlb.inverse_transform(y_pred_test1)
 
@@ -57,7 +57,6 @@ for i in x_test:
         line += f'{x} '
     if line[-1] == ' ':
         line = line[:-1]
-    l.append(line)
     file.write(line + '\n')
 file.close()
 
@@ -73,7 +72,6 @@ y_pred_val = model.predict_generator(
                      y_val, batch_size=1, shuffle=False),
     verbose=1)
 
-ll = []
 y_pred_val1 = np.round(y_pred_val)
 where_1 = mlb.inverse_transform(y_pred_val1)
 
@@ -84,7 +82,6 @@ for i in x_val:
     line = f"{i},"
     for x in where_one:
         line += f'{x} '
-    ll.append(line)
     file.write(line[:-1] + '\n')
 file.close()
 
