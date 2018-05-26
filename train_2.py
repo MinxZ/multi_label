@@ -33,13 +33,13 @@ n = x_train.shape[0]
 # MODEL = Xception
 # batch_size = 16
 
-model_name = 'InceptionResNetV2'
-MODEL = InceptionResNetV2
-batch_size = 16
+# model_name = 'InceptionResNetV2'
+# MODEL = InceptionResNetV2
+# batch_size = 16
 
-# model_name = 'NASNetLarge'
-# MODEL = NASNetLarge
-# batch_size = 6
+model_name = 'NASNetLarge'
+MODEL = NASNetLarge
+batch_size = 6
 
 # with CustomObjectScope({'f1_loss': f1_loss, 'f1_score': f1_score, 'precision': precision, 'recall': recall}):
 #     model = load_model(f'../models/Xception_f1.h5')
@@ -109,5 +109,5 @@ model.fit_generator(
         x_val, '../data/val_data', width, y_val, batch_size=batch_size),
     validation_steps=len(x_val) / batch_size,
     epochs=epoch,
-    callbacks=[early_stopping, checkpointer, reduce_lr],
+    callbacks=[early_stopping, reduce_lr],
     workers=4)
