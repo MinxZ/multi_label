@@ -10,16 +10,31 @@ def f1_loss(y_true, y_pred):
 
 
 def f1_loss(y_true, y_pred):
-    return 1 - 2 * K.sum(y_pred * y_true) / (K.cast(K.sum(y_true), tf.float32) + K.sum(K.round(y_pred)))
+    return 1 - 2 * K.sum(y_pred * y_true) / (K.cast(K.sum(y_true), tf.float32) + K.sum(y_pred))
 
 
-def f1_loss(y_true, y_pred):
+def f1_loss_log(y_true, y_pred):
     TP = K.sum(K.binary_crossentropy(y_true, y_pred))
     # return TP / (K.cast(K.sum(y_true), tf.float32) + K.sum(K.round(y_pred))
     return TP / (K.cast(K.sum(y_true), tf.float32) + K.sum(y_pred))
 
 
-def f1_loss(y_true, y_pred):
+def f1_score(y_true, y_pred):
+    y_pred = tf.round(y_pred)
+
+    TP = tf.count_nonzero(y_pred * y_true)
+    TN = tf.count_nonzero((y_pred - 1) * (y_true - 1))
+    FP = tf.count_nonzero(y_pred * (y_true - 1))
+    FN = tf.count_nonzero((y_pred - 1) * y_true)
+
+    precision = TP / (TP + FP)
+    recall = TP / (TP + FN)
+    f1 = 2 * precision * recall / (precision + recall)
+
+    return f1
+
+
+def f1_loss_log2(y_true, y_pred):
     return (K.sum(-K.log(y_pred) * y_true - K.log(1 - y_pred) * (1 - y_true))) / (K.cast(K.sum(y_true), tf.float32) + K.sum(K.round(y_pred)))
 
 

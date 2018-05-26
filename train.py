@@ -20,8 +20,7 @@ from tqdm import tqdm
 
 from image import ImageDataGenerator, resizeAndPad
 from load_data import *
-
-# from model import *
+from model import *
 
 # Load datasets
 x_train, y_train, x_val, y_val = load_multi_label_data('../data/json')
@@ -31,7 +30,7 @@ n = x_train.shape[0]
 
 model_name = 'Xception'
 with CustomObjectScope({'f1_loss': f1_loss, 'f1_score': f1_score, 'precision': precision, 'recall': recall}):
-    model = load_model(f'../models/Xception_f1_59.h5')
+    model = load_model(f'../models/Xception_f1.h5')
 
 
 a = 0
@@ -64,7 +63,7 @@ b = 0
 if b:
     # Compile model
     optimizer = 'Adam'
-    lr = 1e-6  # 1-5e4
+    lr = 3e-6  # 1-5e4
     print(f"  Optimizer={optimizer} lr={str(lr)} \n")
     model.compile(
         loss=f1_loss,
