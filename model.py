@@ -107,7 +107,7 @@ def fc_model(MODEL, x_train, y_train, width, batch_size):
     try:
         features = np.load(f'../data/fc_features_{model_name}.npy')
     except:
-        features = get_features(MODEL, x_train, width, 16)
+        features = get_features(MODEL, x_train, width, 8)
 
     # Training fc models
     inputs = Input(features.shape[1:])
