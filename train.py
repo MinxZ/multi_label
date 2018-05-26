@@ -29,17 +29,17 @@ n_class = y_val.shape[1]
 n = x_train.shape[0]
 
 model_name = 'Xception'
-with CustomObjectScope({'f1_loss': f1_loss, 'f1_score': f1_score, 'precision': precision, 'recall': recall}):
-    model = load_model(f'../models/Xception_f1.h5')
+# with CustomObjectScope({'f1_loss': f1_loss, 'f1_score': f1_score, 'precision': precision, 'recall': recall}):
+#     model = load_model(f'../models/Xception_f1.h5')
 
 
-a = 0
+a = 1
 if a:
     MODEL = Xception
     model = build_model(MODEL, width, n_class)
 
-    # print(' Train fc layer firstly.\n')
-    # fc_model(MODEL, batch_x, batch_y, width, 64)
+    print(' Train fc layer firstly.\n')
+    fc_model(MODEL, batch_x, batch_y, width, 64)
 
     # Load weights
     print('\n Loading weights. \n')

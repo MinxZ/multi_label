@@ -61,11 +61,16 @@ for i in x_test:
     file.write(line + '\n')
 file.close()
 
+y_pred_test4 = (y_pred_test3 + y_pred_test) / 2
+print(f1_score_np(y_pred_test3, y_pred_test))
+print(f1_score_np(y_pred_test4, y_pred_test))
+print(f1_score_np(y_pred_test4, y_pred_test3))
+
 
 val_datagen = ImageDataGenerator(preprocessing_function=preprocess_input)
 y_pred_val = model.predict_generator(
     val_datagen.flow(x_val, '../data/val_data', width,
-                     y_val, batch_size=batch_size, shuffle=False),
+                     y_val, batch_size=1, shuffle=False),
     verbose=1)
 
 ll = []
@@ -83,8 +88,17 @@ for i in x_val:
     file.write(line[:-1] + '\n')
 file.close()
 
-y_pred_test3 = y_pred_test
-l3 = l
+y_pred_val4 = (y_pred_val3 + y_pred_val) / 2
+print(f1_score_np(y_val, y_pred_val3))
+print(f1_score_np(y_val, y_pred_val))
+print(f1_score_np(y_val, y_pred_val4))
+
+
+# y_pred_test3 = y_pred_test
+# l3 = l
+#
+# y_pred_val3 = y_pred_val
+# ll3 = ll
 """
 scp z@192.168.3.2:~/data/iM_Fa/data/json/test.csv .
 """

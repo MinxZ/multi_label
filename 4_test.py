@@ -24,7 +24,7 @@ from model import *
 
 
 def f1_score_np(y_true, y_pred):
-    return 2 * np.sum(np.round(y_pred) * y_true) / (np.sum(y_true) + np.sum(np.round(y_pred)))
+    return 2 * np.sum(np.round(y_pred) * np.round(y_true)) / (np.sum(np.round(y_true)) + np.sum(np.round(y_pred)))
 
 
 index_array = np.arange(y_val.shape[0])
@@ -37,8 +37,7 @@ for i, j in enumerate(tqdm(index_array)):
     x = resizeAndPad(rgb_img, (width, width))
     batch_x[i] = x
 
-'Xception_f1_59',
-model_names = ['Xception_f1_59', 'Xception_f1_5945', 'Xception_f1']
+model_names = ['Xception_f1_59', 'Xception_f1_5945']
 for model_name in model_names:
     with CustomObjectScope({'f1_loss': f1_loss, 'f1_score': f1_score, 'precision': precision, 'recall': recall}):
         model = load_model(f'../models/{model_name}.h5')
