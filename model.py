@@ -63,16 +63,6 @@ def recall(y_true, y_pred):
 
     return recall
 
-# index_array = np.random.permutation(n)[:6000]
-# batch_x = np.zeros((len(index_array), width, width, 3))
-# batch_y = y_train[index_array]
-# for i, j in enumerate(tqdm(index_array)):
-#     s_img = cv2.imread(f'../data/train_data/{j+1}.jpg')
-#     b, g, r = cv2.split(s_img)       # get b,g,r
-#     rgb_img = cv2.merge([r, g, b])     # switch it to rgb
-#     x = resizeAndPad(rgb_img, (width, width))
-#     batch_x[i] = x
-
 
 # datagen and val_datagen
 # datagen = ImageDataGenerator(
@@ -103,7 +93,7 @@ def get_features(MODEL, data, width, batch_size, model_name):
     return features
 
 
-def fc_model(MODEL, x_train, y_train, width, batch_size, model_name):
+def fc_model(MODEL, x_train, batch_y, width, batch_size, model_name, n_class):
     try:
         features = np.load(f'../data/fc_features_{model_name}.npy')
     except:
@@ -114,22 +104,25 @@ def fc_model(MODEL, x_train, y_train, width, batch_size, model_name):
     x = inputs
     # x = Dropout(0.5)(x)
     # x = Dense(256, activation='elu', name='fc')(x)
-    x = Dropout(0.5)(x)
+    x = Dropout(0.5, name='dropout_1')(x)
     x = Dense(n_class, activation='sigmoid', name='predictions')(x)
     model_fc = Model(inputs, x)
+
+    early_stopping = EarlyStopping(
+        monitor='val_loss', patience=10, verbose=1, mode='auto')
+    checkpointer = ModelCheckpoint(
+        filepath=f'../models/fc_{model_name}.h5', verbose=0, save_best_only=True)
+    reduce_lr = ReduceLROnPlateau(
+        factor=np.sqrt(0.1), patience=5, verbose=2)
 
     model_fc.compile(
         optimizer='adam',
         # loss='binary_crossentropy',
         loss=f1_loss,
         metrics=[f1_score, precision, recall])
-    early_stopping = EarlyStopping(
-        monitor='val_loss', patience=10, verbose=1, mode='auto')
-    checkpointer = ModelCheckpoint(
-        filepath=f'../models/fc_{model_name}.h5', verbose=0, save_best_only=True)
     model_fc.fit(
         features,
-        y_train,
+        batch_y,
         batch_size=128,
         epochs=10000,
         validation_split=0.1,

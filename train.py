@@ -19,42 +19,47 @@ from tqdm import tqdm
 
 from image import ImageDataGenerator, resizeAndPad
 from load_data import *
-from model import *
+
+# from model import *
 
 # Load datasets
 x_train, y_train, x_val, y_val = load_multi_label_data('../data/json')
 width = 224
-batch_size = 10
+batch_size = 4
 n_class = y_val.shape[1]
 n = x_train.shape[0]
 
 # model_name = 'Xception'
-model_name = 'NASNetLarge'
+# MODEL = Xception
+model_name = 'InceptionResNetV2'
+MODEL = InceptionResNetV2
 # with CustomObjectScope({'f1_loss': f1_loss, 'f1_score': f1_score, 'precision': precision, 'recall': recall}):
 #     model = load_model(f'../models/Xception_f1.h5')
 
-index_array = np.random.permutation(n)[:6000]
-batch_x = np.zeros((len(index_array), width, width, 3))
-batch_y = y_train[index_array]
-for i, j in enumerate(tqdm(index_array)):
-    s_img = cv2.imread(f'../data/train_data/{j+1}.jpg')
-    b, g, r = cv2.split(s_img)       # get b,g,r
-    rgb_img = cv2.merge([r, g, b])     # switch it to rgb
-    x = resizeAndPad(rgb_img, (width, width))
-    batch_x[i] = x
-
-
-a = 1
-if a:
-    # MODEL = Xception
-    MODEL = NASNetLarge
-    model = build_model(MODEL, width, n_class)
-
-    print(' Train fc layer firstly.\n')
-    fc_model(MODEL, batch_x, batch_y, width, batch_size, model_name)
-    # Load weights
+model = build_model(MODEL, width, n_class)
+# Load weights
+try:
     print('\n Loading weights. \n')
     model.load_weights(f'../models/fc_{model_name}.h5', by_name=True)
+except:
+    print(' Train fc layer firstly.\n')
+    try:
+        batch_x = np.load('../data/batch_x.npy')
+        batch_y = np.load('../data/batch_y.npy')
+    except:
+        index_array = np.random.permutation(n)[:6000]
+        batch_x = np.zeros((len(index_array), width, width, 3))
+        batch_y = y_train[index_array]
+        for i, j in enumerate(tqdm(index_array)):
+            s_img = cv2.imread(f'../data/train_data/{j+1}.jpg')
+            b, g, r = cv2.split(s_img)       # get b,g,r
+            rgb_img = cv2.merge([r, g, b])     # switch it to rgb
+            x = resizeAndPad(rgb_img, (width, width))
+            batch_x[i] = x
+        np.save('../data/batch_x', batch_x)
+        np.save('../data/batch_y', batch_y)
+
+    fc_model(MODEL, batch_x, batch_y, width, batch_size, model_name, n_class)
 
 # callbacks
 reduce_lr_patience = 5
@@ -62,7 +67,7 @@ patience = 10  # reduce_lr_patience+1 + 1
 early_stopping = EarlyStopping(
     monitor='val_loss', patience=patience, verbose=2, mode='auto')
 checkpointer = ModelCheckpoint(
-    filepath=f'../models/{model_name}.h5', verbose=0, save_best_only=True)
+    filepath=f'../models/{model_name}_bc.h5', verbose=0, save_best_only=True)
 reduce_lr = ReduceLROnPlateau(
     factor=np.sqrt(0.1), patience=reduce_lr_patience, verbose=2)
 
@@ -70,14 +75,15 @@ datagen = ImageDataGenerator(preprocessing_function=preprocess_input)
 val_datagen = ImageDataGenerator(preprocessing_function=preprocess_input)
 
 b = 1
+lr = 1e-4
 if b:
     # Compile model
     optimizer = 'Adam'
-    lr = 1e-3  # 1-5e4
+    # lr = 1e-4  # 1-5e4
     print(f"  Optimizer={optimizer} lr={str(lr)} \n")
     model.compile(
-        loss=f1_loss,
-        # loss='binary_crossentropy',
+        # loss=f1_loss,
+        loss='binary_crossentropy',
         optimizer=Adam(lr=lr),
         # optimizer=SGD(lr=lr, momentum=0.9, nesterov=True),
         metrics=[f1_score, precision, recall])
@@ -86,7 +92,7 @@ if b:
 # Start fitting model
 fold = 100
 print(" Fine tune " + model_name + ": \n")
-batch_size = 10
+batch_size = 16
 epoch = 1e4
 model.fit_generator(
     datagen.flow(x_train, '../data/train_data', width,
