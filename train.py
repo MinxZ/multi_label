@@ -51,8 +51,8 @@ except:
         batch_x = np.load('../data/batch_x.npy')
         batch_y = np.load('../data/batch_y.npy')
     except:
-        index_array = np.random.permutation(n)[:6000]
-        batch_x = np.zeros((len(index_array), width, width, 3))
+        index_array = np.random.permutation(n)[:8192]
+        batch_x = np.zeros((len(index_array), width, width, 3),  dtype=int8)
         batch_y = y_train[index_array]
         for i, j in enumerate(tqdm(index_array)):
             s_img = cv2.imread(f'../data/train_data/{j+1}.jpg')
@@ -63,11 +63,12 @@ except:
         np.save('../data/batch_x', batch_x)
         np.save('../data/batch_y', batch_y)
     fc_model(MODEL, batch_x, batch_y, width, batch_size, model_name, n_class)
+    print('\n Loading weights. \n')
     model.load_weights(f'../models/fc_{model_name}_bc.h5', by_name=True)
 
 # callbacks
-reduce_lr_patience = 3
-patience = 7  # reduce_lr_patience+1 + 1
+reduce_lr_patience = 2
+patience = 5  # reduce_lr_patience+1 + 1
 early_stopping = EarlyStopping(
     monitor='val_loss', patience=patience, verbose=2, mode='auto')
 checkpointer = ModelCheckpoint(
@@ -78,21 +79,15 @@ reduce_lr = ReduceLROnPlateau(
 datagen = ImageDataGenerator(preprocessing_function=preprocess_input)
 val_datagen = ImageDataGenerator(preprocessing_function=preprocess_input)
 
-b = 1
 lr = 3e-4
-if b:
-    # Compile model
-    optimizer = 'Adam'
-    # lr = 1e-4  # 1-5e4
-    print(f"  Optimizer={optimizer} lr={str(lr)} \n")
-    model.compile(
-        # loss=f1_loss,
-        loss='binary_crossentropy',
-        optimizer=Adam(lr=lr),
-        # optimizer=SGD(lr=lr, momentum=0.9, nesterov=True),
-        metrics=[f1_score, precision, recall])
-
-
+optimizer = 'Adam'
+print(f"  Optimizer={optimizer} lr={str(lr)} \n")
+model.compile(
+    # loss=f1_loss,
+    loss='binary_crossentropy',
+    optimizer=Adam(lr=lr),
+    # optimizer=SGD(lr=lr, momentum=0.9, nesterov=True),
+    metrics=[f1_score, precision, recall])
 # Start fitting model
 fold = 20
 print(" Fine tune " + model_name + ": \n")
@@ -105,8 +100,11 @@ model.fit_generator(
         x_val, '../data/val_data', width, y_val, batch_size=batch_size),
     validation_steps=len(x_val) / batch_size,
     epochs=epoch,
-    callbacks=[early_stopping, checkpointer, reduce_lr],
+    callbacks=[early_stopping, reduce_lr, checkpointer],
     workers=4)
+
+checkpointer = ModelCheckpoint(
+    filepath=f'../models/{model_name}_f1.h5', verbose=0, save_best_only=True)
 
 lr = 1e-4
 model.compile(
@@ -115,8 +113,6 @@ model.compile(
     optimizer=Adam(lr=lr),
     # optimizer=SGD(lr=lr, momentum=0.9, nesterov=True),
     metrics=[f1_score, precision, recall])
-
-
 # Start fitting model
 fold = 20
 print(" Fine tune " + model_name + ": \n")
@@ -129,5 +125,5 @@ model.fit_generator(
         x_val, '../data/val_data', width, y_val, batch_size=batch_size),
     validation_steps=len(x_val) / batch_size,
     epochs=epoch,
-    callbacks=[early_stopping, checkpointer, reduce_lr],
+    callbacks=[early_stopping, reduce_lr, checkpointer],
     workers=4)

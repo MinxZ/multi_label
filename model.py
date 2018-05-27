@@ -64,18 +64,6 @@ def recall(y_true, y_pred):
     return recall
 
 
-# datagen and val_datagen
-# datagen = ImageDataGenerator(
-#     preprocessing_function=preprocess_input,
-#     # preprocessing_function=get_random_eraser(
-#     #     p=0.2, v_l=0, v_h=255, pixel_level=True),  # 0.1-0.4
-#     rotation_range=10,  # 10-30
-#     width_shift_range=0.1,  # 0.1-0.3
-#     height_shift_range=0.1,  # 0.1-0.3
-#     shear_range=0.1,  # 0.1-0.3
-#     zoom_range=0.1,  # 0.1-0.3
-#     horizontal_flip=True,
-#     fill_mode='nearest')
 def get_features(MODEL, data, width, batch_size, model_name):
     cnn_model = MODEL(input_shape=(width, width, 3),
                       include_top=False,  weights='imagenet', pooling='avg')
@@ -109,7 +97,7 @@ def fc_model(MODEL, x_train, batch_y, width, batch_size, model_name, n_class):
     model_fc = Model(inputs, x)
 
     early_stopping = EarlyStopping(
-        monitor='val_loss', patience=10, verbose=1, mode='auto')
+        monitor='val_loss', patience=5, verbose=1, mode='auto')
     checkpointer = ModelCheckpoint(
         filepath=f'../models/fc_{model_name}_bc.h5', verbose=0, save_best_only=True)
     reduce_lr = ReduceLROnPlateau(
