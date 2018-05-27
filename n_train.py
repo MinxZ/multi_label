@@ -23,24 +23,15 @@ from model import *
 
 # Load datasets
 x_train, y_train, x_val, y_val = load_multi_label_data('../data/json')
-width = 224
-batch_size = 4
+width = 331
 n_class = y_val.shape[1]
 n = x_train.shape[0]
 
-# model_name = 'Xception'
-# MODEL = Xception
-# batch_size = 16
-
-model_name = 'InceptionResNetV2'
-MODEL = InceptionResNetV2
+model_name = 'NASNetLarge'
+MODEL = NASNetLarge
 batch_size = 16
 
 model = build_model(MODEL, width, n_class)
-
-# with CustomObjectScope({'f1_loss': f1_loss, 'f1_score': f1_score, 'precision': precision, 'recall': recall}):
-#     model = load_model(f'../models/Xception_f1.h5')
-
 # Load weights
 try:
     print('\n Loading weights. \n')
@@ -66,8 +57,8 @@ except:
     model.load_weights(f'../models/fc_{model_name}_bc.h5', by_name=True)
 
 # callbacks
-reduce_lr_patience = 3
-patience = 7  # reduce_lr_patience+1 + 1
+reduce_lr_patience = 2
+patience = 5  # reduce_lr_patience+1 + 1
 early_stopping = EarlyStopping(
     monitor='val_loss', patience=patience, verbose=2, mode='auto')
 checkpointer = ModelCheckpoint(
@@ -105,7 +96,7 @@ model.fit_generator(
         x_val, '../data/val_data', width, y_val, batch_size=batch_size),
     validation_steps=len(x_val) / batch_size,
     epochs=epoch,
-    callbacks=[early_stopping, checkpointer, reduce_lr],
+    callbacks=[early_stopping, reduce_lr],
     workers=4)
 
 lr = 1e-4
@@ -129,5 +120,5 @@ model.fit_generator(
         x_val, '../data/val_data', width, y_val, batch_size=batch_size),
     validation_steps=len(x_val) / batch_size,
     epochs=epoch,
-    callbacks=[early_stopping, checkpointer, reduce_lr],
+    callbacks=[early_stopping, reduce_lr],
     workers=4)

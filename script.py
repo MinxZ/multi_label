@@ -1,14 +1,12 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
+from __future__ import absolute_import, division, print_function
 
 import io
+import json
+import multiprocessing
 import os
 import sys
-import json
-import urllib3
-import multiprocessing
 
+import urllib3
 from PIL import Image
 from tqdm import tqdm
 from urllib3.util import Retry
@@ -24,7 +22,8 @@ def download_image(fnames_and_urls):
     """
     fname, url = fnames_and_urls
     if not os.path.exists(fname):
-        http = urllib3.PoolManager(retries=Retry(connect=3, read=2, redirect=3))
+        http = urllib3.PoolManager(
+            retries=Retry(connect=3, read=2, redirect=3))
         response = http.request("GET", url)
         image = Image.open(io.BytesIO(response.data))
         image_rgb = image.convert("RGB")
@@ -46,7 +45,7 @@ def parse_dataset(_dataset, _outdir, _max=10000):
             url = image["url"]
             fname = os.path.join(outdir, "{}.jpg".format(image["imageId"]))
             _fnames_urls.append((fname, url))
-    return _fnames_urls[:_max]
+    return _fnames_urls[:]
 
 
 if __name__ == '__main__':
