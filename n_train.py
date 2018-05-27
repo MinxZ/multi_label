@@ -91,7 +91,7 @@ model.fit_generator(
         x_val, '../data/val_data', width, y_val, batch_size=batch_size),
     validation_steps=len(x_val) / batch_size,
     epochs=epoch,
-    callbacks=[early_stopping, reduce_lr, checkpointer],
+    callbacks=[early_stopping, reduce_lr],
     workers=4)
 
 checkpointer = ModelCheckpoint(
@@ -116,5 +116,5 @@ model.fit_generator(
         x_val, '../data/val_data', width, y_val, batch_size=batch_size),
     validation_steps=len(x_val) / batch_size,
     epochs=epoch,
-    callbacks=[early_stopping, reduce_lr, checkpointer],
+    callbacks=[early_stopping, reduce_lr],
     workers=4)
