@@ -111,14 +111,14 @@ def fc_model(MODEL, x_train, batch_y, width, batch_size, model_name, n_class):
     early_stopping = EarlyStopping(
         monitor='val_loss', patience=10, verbose=1, mode='auto')
     checkpointer = ModelCheckpoint(
-        filepath=f'../models/fc_{model_name}.h5', verbose=0, save_best_only=True)
+        filepath=f'../models/fc_{model_name}_bc.h5', verbose=0, save_best_only=True)
     reduce_lr = ReduceLROnPlateau(
         factor=np.sqrt(0.1), patience=5, verbose=2)
 
     model_fc.compile(
         optimizer='adam',
-        # loss='binary_crossentropy',
-        loss=f1_loss,
+        loss='binary_crossentropy',
+        # loss=f1_loss,
         metrics=[f1_score, precision, recall])
     model_fc.fit(
         features,

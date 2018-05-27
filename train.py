@@ -43,7 +43,7 @@ model = build_model(MODEL, width, n_class)
 # Load weights
 try:
     print('\n Loading weights. \n')
-    model.load_weights(f'../models/fc_{model_name}.h5', by_name=True)
+    model.load_weights(f'../models/fc_{model_name}_bc.h5', by_name=True)
 except:
     print(' Train fc layer firstly.\n')
     try:
@@ -61,12 +61,12 @@ except:
             batch_x[i] = x
         np.save('../data/batch_x', batch_x)
         np.save('../data/batch_y', batch_y)
-
     fc_model(MODEL, batch_x, batch_y, width, batch_size, model_name, n_class)
+    model.load_weights(f'../models/fc_{model_name}_bc.h5', by_name=True)
 
 # callbacks
-reduce_lr_patience = 4
-patience = 9  # reduce_lr_patience+1 + 1
+reduce_lr_patience = 3
+patience = 7  # reduce_lr_patience+1 + 1
 early_stopping = EarlyStopping(
     monitor='val_loss', patience=patience, verbose=2, mode='auto')
 checkpointer = ModelCheckpoint(
@@ -85,11 +85,35 @@ if b:
     # lr = 1e-4  # 1-5e4
     print(f"  Optimizer={optimizer} lr={str(lr)} \n")
     model.compile(
-        loss=f1_loss,
-        # loss='binary_crossentropy',
+        # loss=f1_loss,
+        loss='binary_crossentropy',
         optimizer=Adam(lr=lr),
         # optimizer=SGD(lr=lr, momentum=0.9, nesterov=True),
         metrics=[f1_score, precision, recall])
+
+
+# Start fitting model
+fold = 20
+print(" Fine tune " + model_name + ": \n")
+epoch = 1e4
+model.fit_generator(
+    datagen.flow(x_train, '../data/train_data', width,
+                 y_train, batch_size=batch_size),
+    steps_per_epoch=len(x_train) / batch_size / fold,
+    validation_data=val_datagen.flow(
+        x_val, '../data/val_data', width, y_val, batch_size=batch_size),
+    validation_steps=len(x_val) / batch_size,
+    epochs=epoch,
+    callbacks=[early_stopping, checkpointer, reduce_lr],
+    workers=4)
+
+lr = 1e-4
+model.compile(
+    loss=f1_loss,
+    # loss='binary_crossentropy',
+    optimizer=Adam(lr=lr),
+    # optimizer=SGD(lr=lr, momentum=0.9, nesterov=True),
+    metrics=[f1_score, precision, recall])
 
 
 # Start fitting model
