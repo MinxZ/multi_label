@@ -9,9 +9,6 @@ from keras.optimizers import *
 from keras.regularizers import *
 
 
-def load_weights(model, model_name):
-
-
 def f1_loss(y_true, y_pred):
 
     TP = K.sum(y_pred * y_true)

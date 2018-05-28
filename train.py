@@ -27,10 +27,10 @@ width = 224
 n_class = y_val.shape[1]
 n = x_train.shape[0]
 
-batch_size_model = {'NASNetMobile': (64, NASNetMobile), 'Xception': (
+batch_size_model = {'MobileNet': (64, MobileNet), 'Xception': (
     16, Xception), 'InceptionResNetV2': (16, InceptionResNetV2)}
 
-model_name = 'NASNetMobile'
+model_name = 'MobileNet'
 # model_name = 'Xception'
 # model_name = 'InceptionResNetV2'
 
