@@ -9,6 +9,9 @@ from keras.optimizers import *
 from keras.regularizers import *
 
 
+def load_weights(model, model_name):
+
+
 def f1_loss(y_true, y_pred):
 
     TP = K.sum(y_pred * y_true)
@@ -99,7 +102,7 @@ def fc_model(MODEL, x_train, batch_y, width, batch_size, model_name, n_class):
     early_stopping = EarlyStopping(
         monitor='val_loss', patience=5, verbose=1, mode='auto')
     checkpointer = ModelCheckpoint(
-        filepath=f'../models/fc_{model_name}_bc.h5', verbose=0, save_best_only=True)
+        filepath=f'../models/fc_{model_name}.h5', verbose=0, save_best_only=True)
     reduce_lr = ReduceLROnPlateau(
         factor=np.sqrt(0.1), patience=5, verbose=2)
 
@@ -117,7 +120,7 @@ def fc_model(MODEL, x_train, batch_y, width, batch_size, model_name, n_class):
         callbacks=[checkpointer, early_stopping])
 
 
-def build_model(MODEL, width, n_class):
+def build_model(MODEL, width, n_class, model_name):
     print(' Build model. \n')
     # Build the model
     cnn_model = MODEL(
@@ -132,4 +135,29 @@ def build_model(MODEL, width, n_class):
     x = Dense(n_class, activation='sigmoid', name='predictions')(x)
     model = Model(inputs=inputs, outputs=x)
 
+    try:
+        print('\n Loading weights. \n')
+        model.load_weights(f'../models/fc_{model_name}_bc.h5', by_name=True)
+    except:
+        print(' Train fc layer firstly.\n')
+        try:
+            batch_x = np.load('../data/batch_x.npy')
+            batch_y = np.load('../data/batch_y.npy')
+        except:
+            index_array = np.random.permutation(n)[:8192]
+            batch_x = np.zeros(
+                (len(index_array), width, width, 3),  dtype=np.int8)
+            batch_y = y_train[index_array]
+            for i, j in enumerate(tqdm(index_array)):
+                s_img = cv2.imread(f'../data/train_data/{j+1}.jpg')
+                b, g, r = cv2.split(s_img)       # get b,g,r
+                rgb_img = cv2.merge([r, g, b])     # switch it to rgb
+                x = resizeAndPad(rgb_img, (width, width))
+                batch_x[i] = x
+            np.save('../data/batch_x', batch_x)
+            np.save('../data/batch_y', batch_y)
+        fc_model(MODEL, batch_x, batch_y, width,
+                 batch_size, model_name, n_class)
+        print('\n Loading weights. \n')
+        model.load_weights(f'../models/fc_{model_name}.h5', by_name=True)
     return model
