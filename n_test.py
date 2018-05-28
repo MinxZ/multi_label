@@ -58,52 +58,24 @@ train_label = mlb.fit_transform(train['labelId'])
 
 y_test = np.zeros((39706, 228))
 x_test = np.arange(y_test.shape[0]) + 1
-width = 224
+width = 331
 
-
-model_name = 'Xception'
-with CustomObjectScope({'f1_loss': f1_loss, 'f1_score': f1_score, 'precision': precision, 'recall': recall}):
-    model = load_model(f'../models/{model_name}_f1_5945.h5')
+# with CustomObjectScope({'f1_loss': f1_loss, 'f1_score': f1_score, 'precision': precision, 'recall': recall}):
+#     model = load_model('../models/Xception_f1_5945.h5')
 test_datagen = ImageDataGenerator(preprocessing_function=preprocess_input)
 y_pred_test = model.predict_generator(
     test_datagen.flow(x_test, '../data/test_data', width,
                       y_test, batch_size=1, shuffle=False),
     verbose=1)
-np.save(f'../data/json/y_pred_{model_name}_5945', y_pred_test)
-
-model_name = 'Xception'
-with CustomObjectScope({'f1_loss': f1_loss, 'f1_score': f1_score, 'precision': precision, 'recall': recall}):
-    model = load_model(f'../models/{model_name}_f1.h5')
-test_datagen = ImageDataGenerator(preprocessing_function=preprocess_input)
-y_pred_test = model.predict_generator(
-    test_datagen.flow(x_test, '../data/test_data', width,
-                      y_test, batch_size=1, shuffle=False),
-    verbose=1)
-np.save(f'../data/json/y_pred_{model_name}', y_pred_test)
-
-model_name = 'InceptionResNetV2'
-with CustomObjectScope({'f1_loss': f1_loss, 'f1_score': f1_score, 'precision': precision, 'recall': recall}):
-    model = load_model(f'../models/{model_name}_f1.h5')
-test_datagen = ImageDataGenerator(preprocessing_function=preprocess_input)
-y_pred_test = model.predict_generator(
-    test_datagen.flow(x_test, '../data/test_data', width,
-                      y_test, batch_size=1, shuffle=False),
-    verbose=1)
-np.save(f'../data/json/y_pred_{model_name}', y_pred_test)
-
-y_pred_test_xe_5945 = np.load('../data/json/y_pred_Xception_5945.npy')
-y_pred_test_xe = np.load('../data/json/y_pred_Xception.npy')
-y_pred_test_na = np.load('../data/json/y_pred_NASNetLarge.npy')
-y_pred_test_in = np.load('../data/json/y_pred_InceptionResNetV2.npy')
+np.save(f'y_pred_{model_name}', y_pred_test)
 
 # y_pred_test_xe = y_pred_test.copy()
-y_pred_test = (y_pred_test_xe + y_pred_test_na +
-               y_pred_test_in + y_pred_test_xe_5945) / 4
+# y_pred_test = (y_pred_test_xe + y_pred_test_in) / 2
 
 y_pred_test1 = np.round(y_pred_test)
 where_1 = mlb.inverse_transform(y_pred_test1)
 
-file = open('../data/json/test1.csv', 'w')
+file = open('../data/json/test.csv', 'w')
 file.write('image_id,label_id\n')
 for i in x_test:
     where_one = where_1[i - 1]
@@ -117,6 +89,5 @@ file.close()
 
 
 """
-scp z@192.168.3.2:~/data/iM_Fa/data/json/test1.csv .
-scp ./y_pred_NASNetLarge.npy z@192.168.3.2:~/data/iM_Fa/data/json/
+scp -i cyou.pem ec2-user@ec2-13-112-111-250.ap-northeast-1.compute.amazonaws.com:~/data/iM_Fa/multi_label/y_pred_NASNetLarge.npy .
 """

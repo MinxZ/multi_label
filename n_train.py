@@ -57,64 +57,37 @@ except:
     print('\n Loading weights. \n')
     model.load_weights(f'../models/fc_{model_name}_bc.h5', by_name=True)
 
-# callbacks
-reduce_lr_patience = 2
-patience = 5  # reduce_lr_patience+1 + 1
-early_stopping = EarlyStopping(
-    monitor='val_loss', patience=patience, verbose=2, mode='auto')
-checkpointer = ModelCheckpoint(
-    filepath=f'../models/{model_name}_bc.h5', verbose=0, save_best_only=True)
-reduce_lr = ReduceLROnPlateau(
-    factor=np.sqrt(0.1), patience=reduce_lr_patience, verbose=2)
-
 datagen = ImageDataGenerator(preprocessing_function=preprocess_input)
 val_datagen = ImageDataGenerator(preprocessing_function=preprocess_input)
 
-lr = 3e-4
-optimizer = 'Adam'
-print(f"  Optimizer={optimizer} lr={str(lr)} \n")
-model.compile(
-    # loss=f1_loss,
-    loss='binary_crossentropy',
-    optimizer=Adam(lr=lr),
-    # optimizer=SGD(lr=lr, momentum=0.9, nesterov=True),
-    metrics=[f1_score, precision, recall])
-# Start fitting model
-fold = 20
-print(" Fine tune " + model_name + ": \n")
-epoch = 1e4
-model.fit_generator(
-    datagen.flow(x_train, '../data/train_data', width,
-                 y_train, batch_size=batch_size),
-    steps_per_epoch=len(x_train) / batch_size / fold,
-    validation_data=val_datagen.flow(
-        x_val, '../data/val_data', width, y_val, batch_size=batch_size),
-    validation_steps=len(x_val) / batch_size,
-    epochs=epoch,
-    callbacks=[early_stopping, reduce_lr],
-    workers=4)
+losses = {'f1': f1_loss, 'bc': 'binary_crossentropy'}
+loss_names = ['bc', 'f1']
+for loss_name in loss_names:
+    reduce_lr_patience = 3
+    patience = 10  # reduce_lr_patience+1 + 1
+    early_stopping = EarlyStopping(
+        monitor='val_loss', patience=patience, verbose=2, mode='auto')
+    reduce_lr = ReduceLROnPlateau(
+        factor=np.sqrt(0.1), patience=reduce_lr_patience, verbose=2)
 
-checkpointer = ModelCheckpoint(
-    filepath=f'../models/{model_name}_f1.h5', verbose=0, save_best_only=True)
-
-lr = 1e-4
-model.compile(
-    loss=f1_loss,
-    # loss='binary_crossentropy',
-    optimizer=Adam(lr=lr),
-    # optimizer=SGD(lr=lr, momentum=0.9, nesterov=True),
-    metrics=[f1_score, precision, recall])
-# Start fitting model
-fold = 20
-print(" Fine tune " + model_name + ": \n")
-epoch = 1e4
-model.fit_generator(
-    datagen.flow(x_train, '../data/train_data', width,
-                 y_train, batch_size=batch_size),
-    steps_per_epoch=len(x_train) / batch_size / fold,
-    validation_data=val_datagen.flow(
-        x_val, '../data/val_data', width, y_val, batch_size=batch_size),
-    validation_steps=len(x_val) / batch_size,
-    epochs=epoch,
-    callbacks=[early_stopping, reduce_lr],
-    workers=4)
+    lr = 5e-4
+    model.compile(
+        loss=losses[loss_name],
+        # optimizer=Adam(lr=lr),
+        optimizer=SGD(lr=lr, momentum=0.9, nesterov=True),
+        metrics=[f1_score, precision, recall])
+    # Start fitting model
+    batch_size = 14
+    fold = 10
+    epoch = 1e4
+    print(" Fine tune " + model_name + ": \n")
+    model.fit_generator(
+        datagen.flow(x_train, '../data/train_data', width,
+                     y_train, batch_size=batch_size),
+        steps_per_epoch=len(x_train) / batch_size / fold,
+        validation_data=val_datagen.flow(
+            x_val, '../data/val_data', width, y_val, batch_size=batch_size),
+        validation_steps=len(x_val) / batch_size,
+        epochs=epoch,
+        callbacks=[early_stopping, reduce_lr],
+        workers=4)
