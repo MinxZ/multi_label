@@ -27,15 +27,15 @@ width = 224
 n_class = y_val.shape[1]
 n = x_train.shape[0]
 
-batch_size_model = {'MobileNet': (64, MobileNet), 'Xception': (
+batch_size_model = {'MobileNet': (48, MobileNet), 'Xception': (
     16, Xception), 'InceptionResNetV2': (16, InceptionResNetV2)}
 
 model_name = 'MobileNet'
 # model_name = 'Xception'
 # model_name = 'InceptionResNetV2'
 
-MODEL, batch_size = batch_size_model[model_name]
-model = build_model(MODEL, width, n_class, model_name)
+batch_size, MODEL = batch_size_model[model_name]
+model = build_model(MODEL, width, n_class, model_name, batch_size)
 # Load weights
 
 """
@@ -48,7 +48,6 @@ with CustomObjectScope({'f1_loss': f1_loss, 'f1_score': f1_score, 'precision': p
 datagen = ImageDataGenerator(preprocessing_function=preprocess_input)
 val_datagen = ImageDataGenerator(preprocessing_function=preprocess_input)
 
-batch_size = 64
 losses = {'f1': f1_loss, 'bc': 'binary_crossentropy'}
 configs = [('bc', Adam(lr=1e-4)), ('f1', Adam(lr=1e-4)),
            ('f1', SGD(lr=1e-4, momentum=0.9, nesterov=True))]

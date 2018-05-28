@@ -117,7 +117,7 @@ def fc_model(MODEL, x_train, batch_y, width, batch_size, model_name, n_class):
         callbacks=[checkpointer, early_stopping])
 
 
-def build_model(MODEL, width, n_class, model_name):
+def build_model(MODEL, width, n_class, model_name, batch_size):
     print(' Build model. \n')
     # Build the model
     cnn_model = MODEL(
@@ -134,7 +134,7 @@ def build_model(MODEL, width, n_class, model_name):
 
     try:
         print('\n Loading weights. \n')
-        model.load_weights(f'../models/fc_{model_name}_bc.h5', by_name=True)
+        model.load_weights(f'../models/fc_{model_name}.h5', by_name=True)
     except:
         print(' Train fc layer firstly.\n')
         try:
