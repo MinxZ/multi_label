@@ -1,12 +1,44 @@
+from __future__ import absolute_import, division, print_function
+
+import os
+from collections import defaultdict
+
 import keras.backend as K
 import numpy as np
+import tensorflow as tf
 from keras.applications import Xception
 from keras.applications.inception_v3 import preprocess_input
+# Legacy functions
+from keras.backend.common import (epsilon, floatx, image_data_format,
+                                  image_dim_ordering, set_image_dim_ordering)
 from keras.callbacks import *
 from keras.layers import *
 from keras.models import *
 from keras.optimizers import *
 from keras.regularizers import *
+from keras.utils.generic_utils import has_arg
+from tensorflow.core.protobuf import config_pb2
+from tensorflow.python.client import device_lib
+from tensorflow.python.framework import ops as tf_ops
+from tensorflow.python.ops import ctc_ops as ctc
+from tensorflow.python.ops import (control_flow_ops, functional_ops,
+                                   tensor_array_ops)
+from tensorflow.python.training import moving_averages
+
+x_train, y_train, x_val, y_val = load_multi_label_data('../data/json')
+t = np.sum(y_train, axis=0)
+weight = t / np.max(t)
+
+
+def binary_crossentropy_weight(target, output, from_logits=False):
+    if not from_logits:
+        # transform back to logits
+        _epsilon = tf.convert_to_tensor(epsilon(), output.dtype.base_dtype)
+        output = tf.clip_by_value(output, _epsilon, 1 - _epsilon)
+        output = tf.log(output / (1 - output))
+    return tf.nn.weighted_cross_entropy_with_logits(targets=target,
+                                                    logits=output,
+                                                    pos_weight=2)
 
 
 def f1_loss(y_true, y_pred):
@@ -16,7 +48,7 @@ def f1_loss(y_true, y_pred):
     recall = TP / K.sum(y_pred)
     f1 = (1 - 2 * precision * recall / (precision + recall))
 
-    return f1
+    return K.sqrt(f1 + 1)
 
 
 def f1_score(y_true, y_pred):

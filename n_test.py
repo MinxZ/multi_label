@@ -58,16 +58,17 @@ train_label = mlb.fit_transform(train['labelId'])
 
 y_test = np.zeros((39706, 228))
 x_test = np.arange(y_test.shape[0]) + 1
-width = 331
+width = 299
 
-# with CustomObjectScope({'f1_loss': f1_loss, 'f1_score': f1_score, 'precision': precision, 'recall': recall}):
-#     model = load_model('../models/Xception_f1_5945.h5')
+model_name = 'Xception'
+with CustomObjectScope({'f1_loss': f1_loss, 'f1_score': f1_score, 'precision': precision, 'recall': recall}):
+    model = load_model(f'../models/{model_name}_f1.h5')
 test_datagen = ImageDataGenerator(preprocessing_function=preprocess_input)
 y_pred_test = model.predict_generator(
     test_datagen.flow(x_test, '../data/test_data', width,
                       y_test, batch_size=1, shuffle=False),
     verbose=1)
-np.save(f'y_pred_{model_name}', y_pred_test)
+np.save(f'../data/json/y_pred_{model_name}', y_pred_test)
 
 # y_pred_test_xe = y_pred_test.copy()
 # y_pred_test = (y_pred_test_xe + y_pred_test_in) / 2
@@ -89,5 +90,7 @@ file.close()
 
 
 """
-scp -i cyou.pem ec2-user@ec2-13-112-111-250.ap-northeast-1.compute.amazonaws.com:~/data/iM_Fa/multi_label/y_pred_NASNetLarge.npy .
+scp -i cyou.pem ec2-user@ec2-54-178-135-12.ap-northeast-1.compute.amazonaws.com:~/data/iM_Fa/data/json/test.csv .
+scp -i cyou.pem ec2-user@ec2-54-178-135-12.ap-northeast-1.compute.amazonaws.com:~/data/iM_Fa/data/json/y_pred_Xception.npy .
+
 """

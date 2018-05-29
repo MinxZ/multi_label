@@ -30,30 +30,30 @@ n = x_train.shape[0]
 batch_size_model = {'MobileNet': (48, MobileNet), 'Xception': (
     16, Xception), 'InceptionResNetV2': (16, InceptionResNetV2)}
 
-model_name = 'MobileNet'
-# model_name = 'Xception'
-# model_name = 'InceptionResNetV2'
-
-batch_size, MODEL = batch_size_model[model_name]
-model = build_model(MODEL, width, n_class, model_name, batch_size)
-# Load weights
-
-"""
+# model_name = 'MobileNet'
 model_name = 'Xception'
-MODEL = Xception
-batch_size = 16
+# model_name = 'InceptionResNetV2'
+batch_size, MODEL = batch_size_model[model_name]
+
+
+# model = build_model(MODEL, width, n_class, model_name, batch_size)
+model_name = 'Xception'
 with CustomObjectScope({'f1_loss': f1_loss, 'f1_score': f1_score, 'precision': precision, 'recall': recall}):
-    model = load_model('../models/Xception_f1.h5')
-"""
+    model = load_model(f'../models/{model_name}_f1.h5')
+
+# Load weights
 datagen = ImageDataGenerator(preprocessing_function=preprocess_input)
 val_datagen = ImageDataGenerator(preprocessing_function=preprocess_input)
 
-losses = {'f1': f1_loss, 'bc': 'binary_crossentropy'}
-configs = [('bc', Adam(lr=1e-4)), ('f1', Adam(lr=1e-4)),
+losses = {'bcw': binary_crossentropy_weight,
+          'f1': f1_loss, 'bc': 'binary_crossentropy'}
+configs = [('f1', Adam(lr=3e-5)),
            ('f1', SGD(lr=1e-4, momentum=0.9, nesterov=True))]
 for i, config in enumerate(configs):
+
     print(f'{i + 1} trial')
-    loss_name, opt = config
+    loss_name, opt = ('bcw', Adam(lr=3e-5))
+    # loss_name, opt = config
     reduce_lr_patience = 2
     patience = 5  # reduce_lr_patience+1 + 1
     early_stopping = EarlyStopping(
@@ -64,11 +64,11 @@ for i, config in enumerate(configs):
         factor=np.sqrt(0.1), patience=reduce_lr_patience, verbose=2)
 
     model.compile(
-        loss=losses[loss_name],
-        optimizer=opt,
+        loss=f1_loss,  # binary_crossentropy_weight,  # losses[loss_name],
+        optimizer=Adam(lr=1e-5),  # opt,
         metrics=[f1_score, precision, recall])
     # Start fitting model
-    fold = 20
+    fold = 50
     epoch = 1e4
     print(" Fine tune " + model_name + ": \n")
     model.fit_generator(
