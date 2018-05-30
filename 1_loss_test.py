@@ -2,7 +2,7 @@ def f1_loss(y_true, y_pred):
 
     TP = K.sum(y_pred * y_true)
     precision = TP / K.sum(y_true)
-    recall = TP / K.sum(y_pred)
+    recall = TP / K.sum(y_truex)
     # recall = TP / K.sum(K.round(y_pred))
     f1 = (1 - 2 * precision * recall / (precision + recall))
 

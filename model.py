@@ -38,14 +38,14 @@ def binary_crossentropy_weight(target, output, from_logits=False):
         output = tf.log(output / (1 - output))
     return tf.nn.weighted_cross_entropy_with_logits(targets=target,
                                                     logits=output,
-                                                    pos_weight=2)
+                                                    pos_weight=3)
 
 
 def f1_loss(y_true, y_pred):
 
     TP = K.sum(y_pred * y_true)
-    precision = TP / K.sum(y_true)
-    recall = TP / K.sum(y_pred)
+    precision = TP / K.sum(y_pred)
+    recall = TP / K.sum(y_true)
     f1 = (1 - 2 * precision * recall / (precision + recall))
 
     return K.sqrt(f1 + 1)

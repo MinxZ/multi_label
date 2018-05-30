@@ -57,11 +57,14 @@ for i, config in enumerate(configs):
     reduce_lr_patience = 2
     patience = 5  # reduce_lr_patience+1 + 1
     early_stopping = EarlyStopping(
-        monitor='val_loss', patience=patience, verbose=2, mode='auto')
+        monitor='val_f1_score', patience=patience, verbose=2, mode='max')
     checkpointer = ModelCheckpoint(
-        filepath=f'../models/{model_name}_{loss_name}.h5', verbose=0, save_best_only=True)
-    reduce_lr = ReduceLROnPlateau(
-        factor=np.sqrt(0.1), patience=reduce_lr_patience, verbose=2)
+        filepath=f'../models/{model_name}_{loss_name}.h5',
+        monitor='val_f1_score', verbose=0, mode='max', save_best_only=True)
+    reduce_lr = ReduceLROnPlateau(monitor='val_f1_score',
+                                  factor=np.sqrt(0.1),
+                                  patience=reduce_lr_patience,
+                                  verbose=2, mode='max', cooldown=1)
 
     model.compile(
         loss=binary_crossentropy_weight,  # losses[loss_name],
