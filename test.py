@@ -72,12 +72,12 @@ width = 224
 # np.save(f'../data/json/y_pred_{model_name}', y_pred_test)
 
 y_pred_test_xe_299 = np.load('../data/json/y_pred_Xception299.npy')
-y_pred_test_xe_5945 = np.load('../data/json/y_pred_Xception_5945.npy')
+# y_pred_test_xe_5945 = np.load('../data/json/y_pred_Xception_5945.npy')
 y_pred_test_xe = np.load('../data/json/y_pred_Xception.npy')
-y_pred_test_na = np.load('../data/json/y_pred_NASNetLarge.npy')
-y_pred_test_in = np.load('../data/json/y_pred_InceptionResNetV2.npy')
+# y_pred_test_na = np.load('../data/json/y_pred_NASNetLarge.npy')
+# y_pred_test_in = np.load('../data/json/y_pred_InceptionResNetV2.npy')
 
-y_pred_test = (y_pred_test_xe_299 + y_pred_test_na + y_pred_test_in) / 3
+y_pred_test = (y_pred_test_xe_299 + y_pred_test_xe) / 2
 y_pred_test1 = np.round(y_pred_test)
 np.sum(y_pred_test1)
 where_1 = mlb.inverse_transform(y_pred_test1)

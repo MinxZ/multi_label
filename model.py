@@ -27,7 +27,8 @@ from tensorflow.python.training import moving_averages
 
 x_train, y_train, x_val, y_val = load_multi_label_data('../data/json')
 t = np.sum(y_train, axis=0)
-weight = t / np.max(t)
+weight = y_train.shape[0] / t
+weight = np.log(weight)
 
 
 def binary_crossentropy_weight(target, output, from_logits=False):
@@ -38,7 +39,7 @@ def binary_crossentropy_weight(target, output, from_logits=False):
         output = tf.log(output / (1 - output))
     return tf.nn.weighted_cross_entropy_with_logits(targets=target,
                                                     logits=output,
-                                                    pos_weight=3)
+                                                    pos_weight=weight)
 
 
 def f1_loss(y_true, y_pred):
@@ -48,7 +49,7 @@ def f1_loss(y_true, y_pred):
     recall = TP / K.sum(y_true)
     f1 = (1 - 2 * precision * recall / (precision + recall))
 
-    return K.sqrt(f1 + 1)
+    return K.sqrt(f1)
 
 
 def f1_score(y_true, y_pred):

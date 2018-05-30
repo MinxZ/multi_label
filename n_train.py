@@ -38,8 +38,8 @@ batch_size, MODEL = batch_size_model[model_name]
 
 # model = build_model(MODEL, width, n_class, model_name, batch_size)
 model_name = 'Xception'
-with CustomObjectScope({'f1_loss': f1_loss, 'f1_score': f1_score, 'precision': precision, 'recall': recall}):
-    model = load_model(f'../models/{model_name}_f1.h5')
+with CustomObjectScope({'binary_crossentropy_weight': binary_crossentropy_weight, 'f1_loss': f1_loss, 'f1_score': f1_score, 'precision': precision, 'recall': recall}):
+    model = load_model(f'../models/{model_name}_bcw.h5')
 
 # Load weights
 datagen = ImageDataGenerator(preprocessing_function=preprocess_input)
@@ -47,13 +47,13 @@ val_datagen = ImageDataGenerator(preprocessing_function=preprocess_input)
 
 losses = {'bcw': binary_crossentropy_weight,
           'f1': f1_loss, 'bc': 'binary_crossentropy'}
-configs = [('f1', Adam(lr=3e-5)),
-           ('f1', SGD(lr=1e-4, momentum=0.9, nesterov=True))]
+configs = [('bcw', Adam(lr=1e-5)), ('f1', Adam(lr=1e-5)),
+           ('f1', SGD(lr=5e-5, momentum=0.9, nesterov=True))]
 for i, config in enumerate(configs):
 
     print(f'{i + 1} trial')
-    loss_name, opt = ('bcw', Adam(lr=3e-5))
-    # loss_name, opt = config
+    # loss_name, opt = ('bcw', Adam(lr=3e-6))
+    loss_name, opt = config
     reduce_lr_patience = 2
     patience = 5  # reduce_lr_patience+1 + 1
     early_stopping = EarlyStopping(
@@ -67,11 +67,11 @@ for i, config in enumerate(configs):
                                   verbose=2, mode='max', cooldown=1)
 
     model.compile(
-        loss=binary_crossentropy_weight,  # losses[loss_name],
+        loss=losses[loss_name],
         optimizer=opt,
         metrics=[f1_score, precision, recall])
     # Start fitting model
-    fold = 20
+    fold = 50
     epoch = 1e4
     print(" Fine tune " + model_name + ": \n")
     model.fit_generator(
