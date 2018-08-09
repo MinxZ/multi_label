@@ -1,4 +1,4 @@
-# multi_label
+# Multi_label
 A project started for iMaterialist Challenge (Fashion) at FGVC5(https://www.kaggle.com/c/imaterialist-challenge-fashion-2018).
 I achived 22nd (top 11%) in the end. https://www.kaggle.com/meikintom
 
