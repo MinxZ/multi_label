@@ -1,101 +1,77 @@
 from __future__ import absolute_import, division, print_function
 
-import json
+import argparse
 import multiprocessing as mp
 import random
 
-import cv2
-import keras
 import numpy as np
-import pandas as pd
-import tensorflow as tf
+from keras import backend
 from keras.applications import *
-from keras.applications.inception_v3 import preprocess_input
-from keras.callbacks import *
 from keras.layers import *
 from keras.models import *
-from keras.optimizers import *
-from keras.regularizers import *
 from keras.utils.generic_utils import CustomObjectScope
-from sklearn.preprocessing import MultiLabelBinarizer
 from tqdm import tqdm
 
-from image import ImageDataGenerator, resizeAndPad
-from load_data import *
+from image import *
 from model import *
 
-data_path = "../data/json"
-with open('%s/train.json' % (data_path)) as json_data:
-    train = json.load(json_data)
-with open('%s/test.json' % (data_path)) as json_data:
-    test = json.load(json_data)
-with open('%s/validation.json' % (data_path)) as json_data:
-    validation = json.load(json_data)
 
-train_img_url = train['images']
-train_img_url = pd.DataFrame(train_img_url)
-train_ann = train['annotations']
-train_ann = pd.DataFrame(train_ann)
-train = pd.merge(train_img_url, train_ann, on='imageId', how='inner')
+def run(model_name):
+    # Load datasets
+    x_train, x_val, x_test, y_train, y_val, y_test = load_data(model='test')
 
-# test data
-test = pd.DataFrame(test['images'])
+    def predict():
+        val_datagen = ImageDataGenerator(
+            preprocessing_function=preprocess_input)
+        test_result = model.evaluate_generator(
+            val_datagen.flow(x_test, y_test, batch_size=batch_size),
+            steps=len(x_test) / batch_size,
+            max_queue_size=64,
+            workers=16,
+            use_multiprocessing=True,
+            verbose=1)
 
-# Validation Data
-val_img_url = validation['images']
-val_img_url = pd.DataFrame(val_img_url)
-val_ann = validation['annotations']
-val_ann = pd.DataFrame(val_ann)
-validation = pd.merge(val_img_url, val_ann, on='imageId', how='inner')
+        with open(f"../models/test_score.txt", "a") as text_file:
+            text_file.write(f'{weight_name}: {str(test_result)}\n')
+        return test_result
 
-datas = {'Train': train, 'Test': test, 'Validation': validation}
-for data in datas.values():
-    data['imageId'] = data['imageId'].astype(np.uint32)
+    if model_name == "ResNet50":
+        print('\n  For Resnet')
+        from keras.applications.imagenet_utils import preprocess_input
+    elif model_name[:-3] == "DenseNet":
+        print('\n  For DenseNet')
+        from keras.applications.densenet import preprocess_input
+    else:
+        print('\n  For model = tf')
+        from keras.applications.inception_v3 import preprocess_input
 
+    # Loading model
+    print('\n  Loading model')
+    model_config, fc, pred, layer_names, input_shape = load_model_config()
+    batch_size = model_config[model_name][0]
 
-mlb = MultiLabelBinarizer()
-train_label = mlb.fit_transform(train['labelId'])
+    weight_name = f'{model_name}_{len(fc)}_fc'
+    for weight_name in [f'{model_name}_{len(fc)}_fc', f'{model_name}_{len(fc)}_fc_fine_tune']:
+        with CustomObjectScope({'f1_loss': f1_loss, 'f1_score': f1_score}):
+            model = load_model(f'../models/{weight_name}.h5')
+        print('\n  Ready to test.')
+        test_result = predict()
 
-y_test = np.zeros((39706, 228))
-x_test = np.arange(y_test.shape[0]) + 1
-width = 224
+            model.compile(optimizer=opt, loss=losses,
+                          loss_weights=lossWeights, metrics=metrics)
 
-
-# model_name = 'Xception'
-# with CustomObjectScope({'f1_loss': f1_loss, 'f1_score': f1_score, 'precision': precision, 'recall': recall}):
-#     model = load_model(f'../models/{model_name}_f1.h5')
-# test_datagen = ImageDataGenerator(preprocessing_function=preprocess_input)
-# y_pred_test = model.predict_generator(
-#     test_datagen.flow(x_test, '../data/test_data', width,
-#                       y_test, batch_size=1, shuffle=False),
-#     verbose=1)
-# np.save(f'../data/json/y_pred_{model_name}', y_pred_test)
-
-y_pred_test_xe_299 = np.load('../data/json/y_pred_Xception299.npy')
-# y_pred_test_xe_5945 = np.load('../data/json/y_pred_Xception_5945.npy')
-y_pred_test_xe = np.load('../data/json/y_pred_Xception.npy')
-# y_pred_test_na = np.load('../data/json/y_pred_NASNetLarge.npy')
-# y_pred_test_in = np.load('../data/json/y_pred_InceptionResNetV2.npy')
-
-y_pred_test = (y_pred_test_xe_299 + y_pred_test_xe) / 2
-y_pred_test1 = np.round(y_pred_test)
-np.sum(y_pred_test1)
-where_1 = mlb.inverse_transform(y_pred_test1)
-
-file = open('../data/json/test.csv', 'w')
-file.write('image_id,label_id\n')
-for i in x_test:
-    where_one = where_1[i - 1]
-    line = f"{i},"
-    for x in where_one:
-        line += f'{x} '
-    if line[-1] == ' ':
-        line = line[:-1]
-    file.write(line + '\n')
-file.close()
+    quit()
 
 
-"""
-scp z@192.168.3.2:~/data/iM_Fa/data/json/test.csv .
-scp ./y_pred_Xception.npy z@192.168.3.2:~/data/iM_Fa/data/json/y_pred_Xception299.npy
-"""
+def parse_args():
+    """ Parse command line arguments.
+    """
+    parser = argparse.ArgumentParser(description="Hyper parameter")
+    parser.add_argument(
+        "--model", help="Model to use", default="All", type=str)
+    return parser.parse_args()
+
+
+if __name__ == "__main__":
+    args = parse_args()
+    run(args.model)

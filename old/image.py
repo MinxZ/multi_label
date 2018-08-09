@@ -12,9 +12,10 @@ import threading
 import warnings
 from functools import partial
 
+import cv2
 import numpy as np
 import scipy.ndimage as ndi
-from keras import backend
+from keras import backend as K
 from keras.utils.data_utils import Sequence
 from scipy import linalg
 
@@ -307,6 +308,183 @@ def flip_axis(x, axis):
 
 
 class ImageDataGenerator(object):
+    """Generate batches of tensor image data with real-time data augmentation.
+     The data will be looped over (in batches).
+
+    # Arguments
+        featurewise_center: Boolean.
+            Set input mean to 0 over the dataset, feature-wise.
+        samplewise_center: Boolean. Set each sample mean to 0.
+        featurewise_std_normalization: Boolean.
+            Divide inputs by std of the dataset, feature-wise.
+        samplewise_std_normalization: Boolean. Divide each input by its std.
+        zca_epsilon: epsilon for ZCA whitening. Default is 1e-6.
+        zca_whitening: Boolean. Apply ZCA whitening.
+        rotation_range: Int. Degree range for random rotations.
+        width_shift_range: Float, 1-D array-like or int
+            - float: fraction of total width, if < 1, or pixels if >= 1.
+            - 1-D array-like: random elements from the array.
+            - int: integer number of pixels from interval
+                `(-width_shift_range, +width_shift_range)`
+            - With `width_shift_range=2` possible values
+                are integers `[-1, 0, +1]`,
+            same as with `width_shift_range=[-1, 0, +1]`,
+            while with `width_shift_range=1.0` possible values are floats in
+            the interval [-1.0, +1.0).
+        height_shift_range: Float, 1-D array-like or int
+            - float: fraction of total height, if < 1, or pixels if >= 1.
+            - 1-D array-like: random elements from the array.
+            - int: integer number of pixels from interval
+                `(-height_shift_range, +height_shift_range)`
+            - With `height_shift_range=2` possible values
+                are integers `[-1, 0, +1]`,
+            same as with `height_shift_range=[-1, 0, +1]`,
+            while with `height_shift_range=1.0` possible values are floats in
+            the interval [-1.0, +1.0).
+        shear_range: Float. Shear Intensity
+            (Shear angle in counter-clockwise direction in degrees)
+        zoom_range: Float or [lower, upper]. Range for random zoom.
+            If a float, `[lower, upper] = [1-zoom_range, 1+zoom_range]`.
+        channel_shift_range: Float. Range for random channel shifts.
+        fill_mode: One of {"constant", "nearest", "reflect" or "wrap"}.
+            Default is 'nearest'.
+            Points outside the boundaries of the input are filled
+            according to the given mode:
+            - 'constant': kkkkkkkk|abcd|kkkkkkkk (cval=k)
+            - 'nearest':  aaaaaaaa|abcd|dddddddd
+            - 'reflect':  abcddcba|abcd|dcbaabcd
+            - 'wrap':  abcdabcd|abcd|abcdabcd
+        cval: Float or Int.
+            Value used for points outside the boundaries
+            when `fill_mode = "constant"`.
+        horizontal_flip: Boolean. Randomly flip inputs horizontally.
+        vertical_flip: Boolean. Randomly flip inputs vertically.
+        rescale: rescaling factor. Defaults to None.
+            If None or 0, no rescaling is applied,
+            otherwise we multiply the data by the value provided
+            (before applying any other transformation).
+        preprocessing_function: function that will be implied on each input.
+            The function will run after the image is resized and augmented.
+            The function should take one argument:
+            one image (Numpy tensor with rank 3),
+            and should output a Numpy tensor with the same shape.
+        data_format: Image data format,
+            either "channels_first" or "channels_last".
+            "channels_last" mode means that the images should have shape
+            `(samples, height, width, channels)`,
+            "channels_first" mode means that the images should have shape
+            `(samples, channels, height, width)`.
+            It defaults to the `image_data_format` value found in your
+            Keras config file at `~/.keras/keras.json`.
+            If you never set it, then it will be "channels_last".
+        validation_split: Float. Fraction of images reserved for validation
+            (strictly between 0 and 1).
+
+    # Examples
+    Example of using `.flow(x, y)`:
+
+    ```python
+    (x_train, y_train), (x_test, y_test) = cifar10.load_data()
+    y_train = np_utils.to_categorical(y_train, num_classes)
+    y_test = np_utils.to_categorical(y_test, num_classes)
+
+    datagen = ImageDataGenerator(
+        featurewise_center=True,
+        featurewise_std_normalization=True,
+        rotation_range=20,
+        width_shift_range=0.2,
+        height_shift_range=0.2,
+        horizontal_flip=True)
+
+    # compute quantities required for featurewise normalization
+    # (std, mean, and principal components if ZCA whitening is applied)
+    datagen.fit(x_train)
+
+    # fits the model on batches with real-time data augmentation:
+    model.fit_generator(datagen.flow(x_train, y_train, batch_size=32),
+                        steps_per_epoch=len(x_train) / 32, epochs=epochs)
+
+    # here's a more "manual" example
+    for e in range(epochs):
+        print('Epoch', e)
+        batches = 0
+        for x_batch, y_batch in datagen.flow(x_train, y_train, batch_size=32):
+            model.fit(x_batch, y_batch)
+            batches += 1
+            if batches >= len(x_train) / 32:
+                # we need to break the loop by hand because
+                # the generator loops indefinitely
+                break
+    ```
+    Example of using `.flow_from_directory(directory)`:
+
+    ```python
+    train_datagen = ImageDataGenerator(
+            rescale=1./255,
+            shear_range=0.2,
+            zoom_range=0.2,
+            horizontal_flip=True)
+
+    test_datagen = ImageDataGenerator(rescale=1./255)
+
+    train_generator = train_datagen.flow_from_directory(
+            'data/train',
+            target_size=(150, 150),
+            batch_size=32,
+            class_mode='binary')
+
+    validation_generator = test_datagen.flow_from_directory(
+            'data/validation',
+            target_size=(150, 150),
+            batch_size=32,
+            class_mode='binary')
+
+    model.fit_generator(
+            train_generator,
+            steps_per_epoch=2000,
+            epochs=50,
+            validation_data=validation_generator,
+            validation_steps=800)
+    ```
+
+    Example of transforming images and masks together.
+
+    ```python
+    # we create two instances with the same arguments
+    data_gen_args = dict(featurewise_center=True,
+                         featurewise_std_normalization=True,
+                         rotation_range=90.,
+                         width_shift_range=0.1,
+                         height_shift_range=0.1,
+                         zoom_range=0.2)
+    image_datagen = ImageDataGenerator(**data_gen_args)
+    mask_datagen = ImageDataGenerator(**data_gen_args)
+
+    # Provide the same seed and keyword arguments to the fit and flow methods
+    seed = 1
+    image_datagen.fit(images, augment=True, seed=seed)
+    mask_datagen.fit(masks, augment=True, seed=seed)
+
+    image_generator = image_datagen.flow_from_directory(
+        'data/images',
+        class_mode=None,
+        seed=seed)
+
+    mask_generator = mask_datagen.flow_from_directory(
+        'data/masks',
+        class_mode=None,
+        seed=seed)
+
+    # combine generators into one which yields image and masks
+    train_generator = zip(image_generator, mask_generator)
+
+    model.fit_generator(
+        train_generator,
+        steps_per_epoch=2000,
+        epochs=50)
+    ```
+    """
+
     def __init__(self,
                  featurewise_center=False,
                  samplewise_center=False,
@@ -330,7 +508,7 @@ class ImageDataGenerator(object):
                  data_format=None,
                  validation_split=0.0):
         if data_format is None:
-            data_format = backend.image_data_format()
+            data_format = K.image_data_format()
         self.featurewise_center = featurewise_center
         self.samplewise_center = samplewise_center
         self.featurewise_std_normalization = featurewise_std_normalization
@@ -411,10 +589,51 @@ class ImageDataGenerator(object):
                               'which overrides setting of '
                               '`samplewise_center`.')
 
-    def flow(self, x, y=None, batch_size=32, shuffle=True, sample_weight=None, seed=None,
+    def flow(self, x, dir_path, width, y=None, batch_size=32, shuffle=True, sample_weight=None, seed=None,
              save_to_dir=None, save_prefix='', save_format='png', subset=None):
+        """Takes numpy data & label arrays, and generates batches of augmented data.
+
+        # Arguments
+            x: Input data. Numpy array of rank 4 or a tuple.
+                If tuple, the first element
+                should contain the images and the second element
+                another numpy array or a list of numpy arrays
+                that gets passed to the output
+                without any modifications.
+                Can be used to feed the model miscellaneous data
+                along with the images.
+                In case of grayscale data, the channels axis of the image array
+                should have value 1, and in case
+                of RGB data, it should have value 3.
+            y: Labels.
+            batch_size: Int (default: 32).
+            shuffle: Boolean (default: True).
+            sample_weight: Sample weights.
+            seed: Int (default: None).
+            save_to_dir: None or str (default: None).
+                This allows you to optionally specify a directory
+                to which to save the augmented pictures being generated
+                (useful for visualizing what you are doing).
+            save_prefix: Str (default: `''`).
+                Prefix to use for filenames of saved pictures
+                (only relevant if `save_to_dir` is set).
+                save_format: one of "png", "jpeg"
+                (only relevant if `save_to_dir` is set). Default: "png".
+            subset: Subset of data (`"training"` or `"validation"`) if
+                `validation_split` is set in `ImageDataGenerator`.
+
+        # Returns
+            An `Iterator` yielding tuples of `(x, y)`
+                where `x` is a numpy array of image data
+                (in the case of a single image input) or a list
+                of numpy arrays (in the case with
+                additional inputs) and `y` is a numpy array
+                of corresponding labels. If 'sample_weight' is not None,
+                the yielded tuples are of the form `(x, y, sample_weight)`.
+                If `y` is None, only the numpy array `x` is returned.
+        """
         return NumpyArrayIterator(
-            x, y, self,
+            x, dir_path, width, y, self,
             batch_size=batch_size,
             shuffle=shuffle,
             sample_weight=sample_weight,
@@ -441,7 +660,7 @@ class ImageDataGenerator(object):
         if self.samplewise_center:
             x -= np.mean(x, keepdims=True)
         if self.samplewise_std_normalization:
-            x /= (np.std(x, keepdims=True) + backend.epsilon())
+            x /= (np.std(x, keepdims=True) + K.epsilon())
 
         if self.featurewise_center:
             if self.mean is not None:
@@ -453,7 +672,7 @@ class ImageDataGenerator(object):
                               'first by calling `.fit(numpy_data)`.')
         if self.featurewise_std_normalization:
             if self.std is not None:
-                x /= (self.std + backend.epsilon())
+                x /= (self.std + K.epsilon())
             else:
                 warnings.warn('This ImageDataGenerator specifies '
                               '`featurewise_std_normalization`, '
@@ -678,7 +897,35 @@ class Iterator(Sequence):
 
 
 class NumpyArrayIterator(Iterator):
-    def __init__(self, x, y, image_data_generator,
+    """Iterator yielding data from a Numpy array.
+
+    # Arguments
+        x: Numpy array of input data or tuple.
+            If tuple, the second elements is either
+            another numpy array or a list of numpy arrays,
+            each of which gets passed
+            through as an output without any modifications.
+        y: Numpy array of targets data.
+        image_data_generator: Instance of `ImageDataGenerator`
+            to use for random transformations and normalization.
+        batch_size: Integer, size of a batch.
+        shuffle: Boolean, whether to shuffle the data between epochs.
+        sample_weight: Numpy array of sample weights.
+        seed: Random seed for data shuffling.
+        data_format: String, one of `channels_first`, `channels_last`.
+        save_to_dir: Optional directory where to save the pictures
+            being yielded, in a viewable format. This is useful
+            for visualizing the random transformations being
+            applied, for debugging purposes.
+        save_prefix: String prefix to use for saving sample
+            images (if `save_to_dir` is set).
+        save_format: Format to use for saving sample images
+            (if `save_to_dir` is set).
+        subset: Subset of data (`"training"` or `"validation"`) if
+            validation_split is set in ImageDataGenerator.
+    """
+
+    def __init__(self, x, dir_path, width, y, image_data_generator,
                  batch_size=32, shuffle=False, sample_weight=None,
                  seed=None, data_format=None,
                  save_to_dir=None, save_prefix='', save_format='png',
@@ -699,6 +946,11 @@ class NumpyArrayIterator(Iterator):
         else:
             x_misc = []
 
+        if y is not None and len(x) != len(y):
+            raise ValueError('`x` (images tensor) and `y` (labels) '
+                             'should have the same length. '
+                             'Found: x.shape = %s, y.shape = %s' %
+                             (np.asarray(x).shape, np.asarray(y).shape))
         if sample_weight is not None and len(x) != len(sample_weight):
             raise ValueError('`x` (images tensor) and `sample_weight` '
                              'should have the same length. '
@@ -720,16 +972,14 @@ class NumpyArrayIterator(Iterator):
                 if y is not None:
                     y = y[split_idx:]
         if data_format is None:
-            data_format = backend.image_data_format()
+            data_format = K.image_data_format()
         self.x = x
         self.x_misc = x_misc
         channels_axis = 3 if data_format == 'channels_last' else 1
+        self.dir_path = dir_path
+        self.width = width
         if y is not None:
-            y1, y2, y3 = y
-            self.y = np.asarray(y1)
-            self.y1 = np.asarray(y1)
-            self.y2 = np.asarray(y2)
-            self.y3 = np.asarray(y3)
+            self.y = np.asarray(y)
         else:
             self.y = None
         if sample_weight is not None:
@@ -747,24 +997,39 @@ class NumpyArrayIterator(Iterator):
                                                  seed)
 
     def _get_batches_of_transformed_samples(self, index_array):
-        batch_x = np.zeros(tuple([len(index_array)] + [224, 224, 3]),
-                           dtype=backend.floatx())
+        batch_x = np.zeros((len(index_array), self.width,
+                            self.width, 3), dtype=K.floatx())
 
         for i, j in enumerate(index_array):
-            x = self.x[j]
-            # x = np.load(f'../data/npy/{x}.npy')
+            # print(f'{self.dir_path}/{self.x[j]}.jpg')
+            s_img = cv2.imread(f'{self.dir_path}/{j+1}.jpg')
+            b, g, r = cv2.split(s_img)       # get b,g,r
+            rgb_img = cv2.merge([r, g, b])     # switch it to rgb
+            x = resizeAndPad(rgb_img, (self.width, self.width))
+            # x = np.zeros((224, 224, 3))
+
             x = self.image_data_generator.random_transform(
-                x.astype(backend.floatx()))
+                x.astype(K.floatx()))
             x = self.image_data_generator.standardize(x)
             batch_x[i] = x
 
+        if self.save_to_dir:
+            for i, j in enumerate(index_array):
+                img = array_to_img(batch_x[i], self.data_format, scale=True)
+                fname = '{prefix}_{index}_{hash}.{format}'.format(
+                    prefix=self.save_prefix,
+                    index=j,
+                    hash=np.random.randint(1e4),
+                    format=self.save_format)
+                img.save(os.path.join(self.save_to_dir, fname))
         batch_x_miscs = [xx[index_array] for xx in self.x_misc]
         output = (batch_x if batch_x_miscs == []
                   else [batch_x] + batch_x_miscs,)
         if self.y is None:
             return output[0]
-        output += ([self.y1[index_array], self.y2[index_array],
-                    self.y3[index_array]],)
+        output += (self.y[index_array],)
+        if self.sample_weight is not None:
+            output += (self.sample_weight[index_array],)
         return output
 
     def next(self):

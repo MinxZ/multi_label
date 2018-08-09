@@ -1,193 +1,205 @@
 from __future__ import absolute_import, division, print_function
 
-import os
-from collections import defaultdict
-
-import keras.backend as K
+import keras
 import numpy as np
 import tensorflow as tf
-from keras.applications import Xception
-from keras.applications.inception_v3 import preprocess_input
-# Legacy functions
-from keras.backend.common import (epsilon, floatx, image_data_format,
-                                  image_dim_ordering, set_image_dim_ordering)
+from keras.applications import *
 from keras.callbacks import *
 from keras.layers import *
 from keras.models import *
 from keras.optimizers import *
-from keras.regularizers import *
-from keras.utils.generic_utils import has_arg
-from tensorflow.core.protobuf import config_pb2
-from tensorflow.python.client import device_lib
-from tensorflow.python.framework import ops as tf_ops
-from tensorflow.python.ops import ctc_ops as ctc
-from tensorflow.python.ops import (control_flow_ops, functional_ops,
-                                   tensor_array_ops)
-from tensorflow.python.training import moving_averages
-
-x_train, y_train, x_val, y_val = load_multi_label_data('../data/json')
-t = np.sum(y_train, axis=0)
-weight = y_train.shape[0] / t
-weight = np.log(weight)
+from keras.utils.generic_utils import CustomObjectScope
+from tqdm import tqdm
 
 
-def binary_crossentropy_weight(target, output, from_logits=False):
-    if not from_logits:
-        # transform back to logits
-        _epsilon = tf.convert_to_tensor(epsilon(), output.dtype.base_dtype)
-        output = tf.clip_by_value(output, _epsilon, 1 - _epsilon)
-        output = tf.log(output / (1 - output))
-    return tf.nn.weighted_cross_entropy_with_logits(targets=target,
-                                                    logits=output,
-                                                    pos_weight=weight)
+def load_data(model='train', num_fc=3):
+    p = np.load('../data/p.npy')
+    num = p.shape[0]
+    y = {}
+    y_train = []
+    y_val = []
+    y_test = []
+    train = p[:int(num * 0.8)]
+    val = p[int(num * 0.8):int(num * 0.9)]
+    test = p[int(num * 0.9):]
+    for i in range(num_fc):
+        y[i] = np.load(f'../data/label_{i}.npy')
+        y_train.append(y[i][train])
+        y_val.append(y[i][val])
+        y_test.append(y[i][test])
+    x_val = np.load('../data/x_val.npy')
+    x_test = np.load('../data/x_test.npy')
+    if model == 'train':
+        x_train = np.load('../data/x_train.npy')
+        return x_train, x_val, x_test, y_train, y_val, y_test
+    elif model == 'test':
+        return x_val, x_val, x_test, x_val, y_val, y_test
+    elif model == 'index':
+        return train, val, test, y_train, y_val, y_test
 
 
-def f1_loss(y_true, y_pred):
+def load_model_config(y_val, model='all'):
+    model_config = {
+        "Xception": [40, Xception],
+        "InceptionResNetV2": [32, InceptionResNetV2],
+        "ResNet50": [56, ResNet50],
+        "InceptionV3": [56, InceptionV3],
+        "DenseNet201": [32, DenseNet201],
+        "DenseNet169": [40, DenseNet169],
+        "DenseNet121": [56, DenseNet121],
+    }
+    train, val, test, y_train, y_val, y_test = load_data(model='index')
+    if model == 'all':
+        fc = [96, 128, 32]
+        pred = []
+        for i, data in enumerate(y_val):
+            pred.append(data.shape[1])
+        layer_names = ['category', 'color', 'pattern']
+    else:
+        fc_model = {'category': 96,
+                    'color': 128,
+                    'pattern': 32}
+        pred_model = {'category': 157,
+                      'color': 25,
+                      'pattern': 19}
+        fc = [fc_model[model]]
+        pred = [pred_model[model]]
+        layer_names = [model]
 
-    TP = K.sum(y_pred * y_true)
-    precision = TP / K.sum(y_pred)
-    recall = TP / K.sum(y_true)
-    f1 = (1 - 2 * precision * recall / (precision + recall))
+    input_shape = (224, 224, 3)
+    return model_config, fc, pred, layer_names, input_shape
 
-    return K.sqrt(f1)
+
+def tri_fc(inputs, x, fc, pred, layer_names, activation_1='elu', activation_2=['softmax', 'sigmoid', 'sigmoid']):
+    num = len(fc)
+    processed = {}
+    for i in range(num):
+        processed[i] = Dropout(0.5)(x)
+        processed[i] = Dense(fc[i], activation=activation_1,
+                             name=f'{layer_names[i]}_{activation_1}_{fc[i]}')(processed[i])
+        processed[i] = Dropout(0.5)(processed[i])
+        processed[i] = Dense(pred[i], activation=activation_2[i],
+                             name=f'{layer_names[i]}_{activation_2[i]}_{pred[i]}')(processed[i])
+
+        # processed[i] = Dense(fc[i], activation=activation_1,
+        #                      name=f'processed{i}_fc{i}')(processed[i])
+        # processed[i] = Dropout(0.5)(processed[i])
+        # processed[i] = Dense(pred[i], activation=activation_2[i],
+        #                      name=layer_names[i])(processed[i])
+    if num == 1:
+        outputs = processed[0]
+    else:
+        outputs = [processed[i] for i in range(num)]
+    model = Model(inputs, outputs)
+    return model
+
+
+def tri_fc_256(inputs, x, fc, pred, layer_names, activation_1='elu'):
+    num = len(fc)
+    processed = {}
+    for i in range(num):
+        processed[i] = Dropout(0.5)(x)
+        processed[i] = Dense(fc[i], activation=activation_1,
+                             name=f'processed{i}_fc{i}')(processed[i])
+    if num == 1:
+        outputs = processed[0]
+    else:
+        outputs = [processed[i] for i in range(num)]
+    model = Model(inputs, concatenate(outputs))
+    return model
+
+
+def fc_model_train(x_train_fc, y_train_fc, x_val_fc, y_val_fc, batch_size, cnn_model, fc, pred, layer_names, model_name, preprocess_input, activation_2=['softmax', 'sigmoid', 'sigmoid']):
+    early_stopping = EarlyStopping(
+        monitor='val_loss', patience=10, verbose=1, mode='auto')
+    multi_fc_model_name = f'{len(fc)}_fc_{model_name}'
+
+    try:
+        f_train = np.load(f'../data/f_train_{model_name}.npy')
+        f_val = np.load(f'../data/f_val_{model_name}.npy')
+        print('Load features successfully.')
+    except:
+        print('Compute for the features.')
+        from keras.preprocessing.image import ImageDataGenerator
+        val_datagen = ImageDataGenerator(
+            preprocessing_function=preprocess_input)
+        f_train = cnn_model.predict_generator(
+            val_datagen.flow(x_train_fc, batch_size=batch_size, shuffle=False),
+            steps=len(x_train_fc) / batch_size,
+            workers=8,
+            use_multiprocessing=True,
+            verbose=1)
+        np.save(f'../data/f_train_{model_name}', f_train)
+        f_val = cnn_model.predict_generator(
+            val_datagen.flow(x_val_fc, batch_size=batch_size, shuffle=False),
+            steps=len(x_val_fc) / batch_size,
+            workers=8,
+            use_multiprocessing=True,
+            verbose=1)
+        np.save(f'../data/f_val_{model_name}', f_val)
+
+    f_input_shape = f_train.shape[1:]
+    f_inputs = Input(shape=f_input_shape)
+    f_x = f_inputs
+
+    print(f'Train for {len(fc)}_fc model')
+    checkpointer = ModelCheckpoint(
+        filepath=f'../models/{multi_fc_model_name}.h5', verbose=0, save_best_only=True)
+    fc_model = tri_fc(f_inputs, f_x, fc, pred, layer_names)
+
+    losses = {
+        f'{layer_names[0]}_{activation_2[0]}_{pred[0]}': "categorical_crossentropy",
+        f'{layer_names[1]}_{activation_2[1]}_{pred[1]}': 'binary_crossentropy',
+        f'{layer_names[2]}_{activation_2[2]}_{pred[2]}': 'binary_crossentropy'}
+    lossWeights = {
+        f'{layer_names[0]}_{activation_2[0]}_{pred[0]}': 1,
+        f'{layer_names[1]}_{activation_2[1]}_{pred[1]}': 10,
+        f'{layer_names[2]}_{activation_2[2]}_{pred[2]}': 10}
+    metrics = {
+        f'{layer_names[0]}_{activation_2[0]}_{pred[0]}': ["categorical_accuracy"],
+        f'{layer_names[1]}_{activation_2[1]}_{pred[1]}': [f1_score],
+        f'{layer_names[2]}_{activation_2[2]}_{pred[2]}': [f1_score]}
+    opt = 'Adam'
+    fc_model.compile(
+        optimizer=opt, loss=losses, loss_weights=lossWeights,
+        metrics=metrics)
+
+    fc_model.fit(
+        f_train,
+        y_train_fc,
+        validation_data=(f_val, y_val_fc),
+        batch_size=64,
+        epochs=10000,
+        callbacks=[checkpointer, early_stopping])
 
 
 def f1_score(y_true, y_pred):
     y_pred = tf.round(y_pred)
-
-    TP = tf.count_nonzero(y_pred * y_true)
-    TN = tf.count_nonzero((y_pred - 1) * (y_true - 1))
-    FP = tf.count_nonzero(y_pred * (y_true - 1))
-    FN = tf.count_nonzero((y_pred - 1) * y_true)
-
-    precision = TP / (TP + FP)
-    recall = TP / (TP + FN)
+    TP = K.sum(y_pred * y_true)
+    precision = TP / K.sum(y_pred)
+    recall = TP / K.sum(y_true)
     f1 = 2 * precision * recall / (precision + recall)
-
     return f1
+
+
+def f1_loss(y_true, y_pred):
+    TP = K.sum(y_pred * y_true)
+    precision = TP / K.sum(y_pred)
+    recall = TP / K.sum(y_true)
+    f1 = 2 * precision * recall / (precision + recall)
+    f1_loss = 1 - f1
+    return f1_loss
 
 
 def precision(y_true, y_pred):
     y_pred = tf.round(y_pred)
-
-    TP = tf.count_nonzero(y_pred * y_true)
-    TN = tf.count_nonzero((y_pred - 1) * (y_true - 1))
-    FP = tf.count_nonzero(y_pred * (y_true - 1))
-    FN = tf.count_nonzero((y_pred - 1) * y_true)
-
-    precision = TP / (TP + FP)
-    recall = TP / (TP + FN)
-    f1 = 2 * precision * recall / (precision + recall)
-
+    TP = K.sum(y_pred * y_true)
+    precision = TP / K.sum(y_pred)
     return precision
 
 
 def recall(y_true, y_pred):
     y_pred = tf.round(y_pred)
-
-    TP = tf.count_nonzero(y_pred * y_true)
-    TN = tf.count_nonzero((y_pred - 1) * (y_true - 1))
-    FP = tf.count_nonzero(y_pred * (y_true - 1))
-    FN = tf.count_nonzero((y_pred - 1) * y_true)
-
-    precision = TP / (TP + FP)
-    recall = TP / (TP + FN)
-    f1 = 2 * precision * recall / (precision + recall)
-
+    TP = K.sum(y_pred * y_true)
+    recall = TP / K.sum(y_true)
     return recall
-
-
-def get_features(MODEL, data, width, batch_size, model_name):
-    cnn_model = MODEL(input_shape=(width, width, 3),
-                      include_top=False,  weights='imagenet', pooling='avg')
-    inputs = Input((width, width, 3))
-    x = inputs
-    x = Lambda(preprocess_input, name='preprocessing')(x)
-    x = cnn_model(x)
-    # x = Dropout(0.5)(x)
-    # x = Dense(256, activation='elu', name='fc')(x)
-    cnn_model = Model(inputs, x)
-    # cnn_model.load_weights('../models/Xception_69_256.h5', by_name=True)
-
-    features = cnn_model.predict(data, batch_size=batch_size, verbose=1)
-    np.save(f'../data/fc_features_{model_name}', features)
-    return features
-
-
-def fc_model(MODEL, x_train, batch_y, width, batch_size, model_name, n_class):
-    try:
-        features = np.load(f'../data/fc_features_{model_name}.npy')
-    except:
-        features = get_features(MODEL, x_train, width, batch_size, model_name)
-
-    # Training fc models
-    inputs = Input(features.shape[1:])
-    x = inputs
-    # x = Dropout(0.5)(x)
-    # x = Dense(256, activation='elu', name='fc')(x)
-    x = Dropout(0.5, name='dropout_1')(x)
-    x = Dense(n_class, activation='sigmoid', name='predictions')(x)
-    model_fc = Model(inputs, x)
-
-    early_stopping = EarlyStopping(
-        monitor='val_loss', patience=5, verbose=1, mode='auto')
-    checkpointer = ModelCheckpoint(
-        filepath=f'../models/fc_{model_name}.h5', verbose=0, save_best_only=True)
-    reduce_lr = ReduceLROnPlateau(
-        factor=np.sqrt(0.1), patience=5, verbose=2)
-
-    model_fc.compile(
-        optimizer='adam',
-        loss='binary_crossentropy',
-        # loss=f1_loss,
-        metrics=[f1_score, precision, recall])
-    model_fc.fit(
-        features,
-        batch_y,
-        batch_size=128,
-        epochs=10000,
-        validation_split=0.1,
-        callbacks=[checkpointer, early_stopping])
-
-
-def build_model(MODEL, width, n_class, model_name, batch_size):
-    print(' Build model. \n')
-    # Build the model
-    cnn_model = MODEL(
-        include_top=False, input_shape=(width, width, 3), weights='imagenet', pooling='avg')
-    inputs = Input((width, width, 3))
-    x = inputs
-    # x = Lambda(preprocess_input, name='preprocessing')(x)
-    x = cnn_model(x)
-    # x = Dropout(0.5)(x)
-    # x = Dense(256, activation='elu', name='fc')(x)
-    x = Dropout(0.5)(x)
-    x = Dense(n_class, activation='sigmoid', name='predictions')(x)
-    model = Model(inputs=inputs, outputs=x)
-
-    try:
-        print('\n Loading weights. \n')
-        model.load_weights(f'../models/fc_{model_name}.h5', by_name=True)
-    except:
-        print(' Train fc layer firstly.\n')
-        try:
-            batch_x = np.load('../data/batch_x.npy')
-            batch_y = np.load('../data/batch_y.npy')
-        except:
-            index_array = np.random.permutation(n)[:8192]
-            batch_x = np.zeros(
-                (len(index_array), width, width, 3),  dtype=np.int8)
-            batch_y = y_train[index_array]
-            for i, j in enumerate(tqdm(index_array)):
-                s_img = cv2.imread(f'../data/train_data/{j+1}.jpg')
-                b, g, r = cv2.split(s_img)       # get b,g,r
-                rgb_img = cv2.merge([r, g, b])     # switch it to rgb
-                x = resizeAndPad(rgb_img, (width, width))
-                batch_x[i] = x
-            np.save('../data/batch_x', batch_x)
-            np.save('../data/batch_y', batch_y)
-        fc_model(MODEL, batch_x, batch_y, width,
-                 batch_size, model_name, n_class)
-        print('\n Loading weights. \n')
-        model.load_weights(f'../models/fc_{model_name}.h5', by_name=True)
-    return model

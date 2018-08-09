@@ -725,11 +725,7 @@ class NumpyArrayIterator(Iterator):
         self.x_misc = x_misc
         channels_axis = 3 if data_format == 'channels_last' else 1
         if y is not None:
-            y1, y2, y3 = y
-            self.y = np.asarray(y1)
-            self.y1 = np.asarray(y1)
-            self.y2 = np.asarray(y2)
-            self.y3 = np.asarray(y3)
+            self.y = np.asarray(y)
         else:
             self.y = None
         if sample_weight is not None:
@@ -763,8 +759,7 @@ class NumpyArrayIterator(Iterator):
                   else [batch_x] + batch_x_miscs,)
         if self.y is None:
             return output[0]
-        output += ([self.y1[index_array], self.y2[index_array],
-                    self.y3[index_array]],)
+        output += (self.y[index_array],)
         return output
 
     def next(self):
